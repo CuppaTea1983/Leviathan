@@ -1,6 +1,7 @@
 # Soon to come.
+--
 
-# Leviathan
+<img src="https://archive.org/download/leviathan-logo-github/leviathan%20logo%20github.jpg" width="1200" />
 
 **Local AI models, running directly on your graphics card. No server, no cloud, no account, no subscription, no telemetry.**
 
