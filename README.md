@@ -20,7 +20,7 @@ What makes it different from the other ways of running a model locally is what h
 - 🔷 [First run](#first-run)
 - 🔷 [The two file types](#the-two-file-types) — **start here if you only read one section**
 - 🔷 [The tabs](#the-tabs)
-- 🔷 [Chat](#chat) · 🔷 [Models](#models) · 🔷 [Studio](#studio) · 🔷 [Cores](#cores) · 🔷 [Memory Vault](#memory-vault) · 🔷 [Traits](#traits) · 🔷 [Inline Studio](#inline-studio) · 🔷 [Graph](#graph) · 🔷 [Planner](#planner) · 🔷 [Settings](#settings)
+- 🔷 [Chat](#chat) · 🔷 [Models](#models) · 🔷 [Studio](#studio) · 🔷 [Cores](#cores) · 🔷 [Memory Vault](#memory-vault) · 🔷 [Traits](#traits) · 🔷 [Inline Studio](#inline-studio) · 🔷 [Graph](#graph) · 🔷 [Planner](#planner) · 🔷 [Fabricator](#fabricator) · 🔷 [Settings](#settings)
 - 🔷 [The systems](#the-systems)
 - 🔶 [Persistent memory](#persistent-memory) · 🔶 [Knowledge routing](#knowledge-routing) · 🔶 [Reasoning layer](#reasoning-layer) · 🔶 [Forensic Grid](#forensic-grid) · 🔶 [Surface Sight](#surface-sight) · 🔶 [Recycling cloud answers](#recycling-cloud-answers) · 🔶 [Episodic memory](#episodic-memory) · 🔶 [Second-opinion fact-check](#second-opinion-fact-check) · 🔶 [Any model, described by itself](#any-model-described-by-itself) · 🔴 [The security membrane](#the-security-membrane)
 - 🟣 [What ANI is — and why it matters](#what-ani-is-and-why-it-matters) — **the thesis, in plain words**
@@ -117,7 +117,7 @@ A **knowledge bank** is a body of knowledge you can give a model without retrain
 <a name="the-tabs"></a>
 ## 🔷 The tabs
 
-Ten tabs down the left side.
+Eleven tabs down the left side.
 
 ---
 
@@ -326,16 +326,52 @@ The Planner is not a preview pane or a toy. It is a genuine **parametric CAD eng
 
 - **Watertight, manifold geometry.** Every operation produces a *solid* — a closed, manifold mesh with no holes, no self-intersections, nothing that only looks right from one angle. That is the property real CAD and 3D printing demand, and it holds at every step because the geometry kernel *guarantees* it rather than hoping for it.
 - **Absolute, real-world scale.** Everything is in **millimetres**, grounded on a build bed at zero. A 40 mm box is 40 mm — not forty arbitrary units. A dimension you type means the same on a tilted face as on the bed, because each face you pick is given its own coordinate frame in the proper CAD convention. What you model is what you could hold.
-- **The operations.** Import a base mesh; sketch a **rectangle, circle or polygon** on any plane and **extrude** or **cut** it; pick a flat face and **push or pull** it (out to add material, in to carve it away); draw directly **on a face**; and **move, rotate, scale** or **drop** the whole part onto the bed. Snap-to-grid in millimetres, keyboard shortcuts, a polygon that closes on its own first corner — the muscle-memory of a real modeller.
+- **The operations.** **📂 Import…** any 3D file — STL, 3MF, OBJ, PLY, glTF/GLB or FBX — as a solid at its real size (see [Every file gets a blueprint](#blueprint)); sketch a **rectangle, circle or polygon** on any plane and **extrude** or **cut** it; pick a flat face and **push or pull** it (out to add material, in to carve it away); draw directly **on a face**; and **move, rotate, scale** or **drop** the whole part onto the bed. Snap-to-grid in millimetres, keyboard shortcuts, a polygon that closes on its own first corner — the muscle-memory of a real modeller.
 - **A GPU-drawn viewport.** The 3D view is rendered on your graphics card, so you orbit, pan and zoom a detailed part at 4K smoothly — the renderer was built for it, not bolted on.
 - **The file is yours, and it is open.** A part saves as plain **JSON** — the ordered history of operations, not an opaque blob — so it is readable, diff-able, and never locked to a format only Leviathan understands. It autosaves and keeps backups as you work.
-- **It fabricates.** **⇢ Send to Fabrication** exports the part as **3MF and STL** — the formats a 3D printer or slicer actually takes — so what you model here goes straight to a machine that makes it real.
+- **It fabricates.** **⇢ Send to Fabrication** writes the part as **3MF and STL** — the formats a 3D printer or slicer actually takes — and opens it in the [Fabricator], which proves it printable before it goes anywhere near a machine.
 
 **And it is driven by more than the mouse.** A graph from the [Graph] tab can be sent in as a solid part — *CAD as code* — and the same pipeline runs the other way too, from Inline Studio's code, to a graph, to a finished part. Model by hand, by node, or by code, all into one engine.
 
-**And increasingly, by instruction.** Because a model already builds in the [Graph], it already reaches *here*: describe the thing you want, a model lays out the graph that defines it, and ⇢ **Send to Planner** turns that into a solid part you can push, pull and fabricate. That already closes the loop Leviathan is built around — **you type, a model designs it in the Graph, it becomes a watertight part in the Planner, and ⇢ Send to Fabrication writes the 3MF/STL a printer takes.** The next step is direct model control of the Planner itself, with its own **Token budget** in [Settings] alongside Chat, Inline Studio and the Graph, so the whole arc runs from a single request: you say what you want, a model builds it — and then makes it real.
+**And by instruction — a model that knows where it is.** Bottom right sits a chat with the model you've picked — shown as chips above it, the same pick Inline Studio and the Graph use, so the model you chose in one tab is the model in the next — or **◆ ANI**, answering from your knowledge banks. The old trap with models and 3D tools is that the model never knows what it's looking at, so it guesses; the Planner hands it the part instead — its real size in millimetres, how it was made, and any face you've picked. Ask *"a 6 mm hole through the middle"* or *"a 10 mm lip around the top"* and the model answers in the CAD library's own language, against the part as it stands — `result = part - cylinder(h=20, d=6).move(40, 30, -1)` — which Leviathan runs in the same locked-down runner as everything else and lands as **one step in the history**: ↶ Undo takes it back. If its script fails, the error goes back to it once to repair; anything outside the safe CAD subset never runs at all; and an answer to a question changes nothing. It works on its own **Token budget** in [Settings].
 
-This is early, and it is deliberately ambitious. The plan is to keep widening what it imports and exports until it is a full fabrication suite — built entirely in-house and entirely local, no subscription, no cloud project store, no account, the parts you make kept as files on your own disk in a format you can read. It is a foundation laid to grow, and it will.
+That closes the loop Leviathan is built around: **you type, a model designs it — in the Graph or right here — it becomes a watertight part, and the [Fabricator] proves it printable and writes the 3MF/STL a printer takes.** When the Fabricator flags something, **✎ Ask the model to fix it** brings the part back here with the findings, and the model's fix arrives as one more undoable step. You say what you want; a model builds it — and then makes it real.
+
+This is early, and it is deliberately ambitious. It already reads six formats and writes four; the plan is to keep widening that until it is a full fabrication suite — built entirely in-house and entirely local, no subscription, no cloud project store, no account, the parts you make kept as files on your own disk in a format you can read. It is a foundation laid to grow, and it will.
+
+---
+
+<a name="fabricator"></a>
+### 🔷 Fabricator
+
+*Prove it printable — then hand it to your slicer.*
+
+The last step from idea to object. A failed print usually announces itself six hours and a spool of filament too late; the Fabricator catches it before the first layer. A part arrives from the [Planner] (⇢ Send to Fabrication opens it here), from the PROJECT column, or from anywhere on your disk with **📂 Open…** — any 3D file: STL, 3MF, OBJ, PLY, glTF/GLB or FBX, read at its real size by its [blueprint](#blueprint) — so it checks the model you just downloaded, too, without copying it anywhere.
+
+The part sits on **your printer's real build plate**, with the build volume drawn around it. Pick your printer from the list (Prusa, Bambu Lab, Creality, Elegoo, Voron and more, by their published build volumes) or type your own bed size, nozzle, material, price per kilo and infill. Leviathan remembers your printer. Then every check runs on the mesh itself:
+
+- **Watertight** — every edge shared by exactly two faces, wound consistently, nothing inside out. Planner parts are closed by construction; a mesh from elsewhere gets its holes and flipped faces counted.
+- **Fits the bed** — the part's size against your build volume, by how much it's over if it is, and whether a quarter turn would fit it.
+- **Overhangs** — any underside steeper than 45° needs support. These faces always point downward, so a part that has them opens **seen from below**, where you can see them; **⤓ Under** gets you back there any time.
+- **Walls** — the thickness of every wall, measured by a ray cast straight through to the opposite side. Thinner than two nozzle widths prints as a single, weak line; thinner than one may not print at all.
+- **Bed contact** — the real footprint of the first layer, measured as a cross-section just above the plate rather than guessed from "flat" faces. Nothing to grip is an error; too tall for its footprint wants a brim. And if a big flat underside sits a hair above the lowest point — a rotated piece's corner poking below the base is the classic — it says so, by how much, and what to trim.
+- **Estimate** — roughly how many grams of filament and what they cost, from the volume, two walls and your infill. Your slicer gives the exact figure.
+
+Problem faces are tinted right on the part — **orange** needs support, **yellow** is too thin, **red** is an open or flipped edge — and a verdict sits on top: *ready for your slicer*, *printable — mind the warnings*, or *not ready*. **⟲ Auto-orient** turns the part for the least support (then the most bed contact, then the lowest height, and a quarter turn if that's what it takes to fit), **↺ Reset** puts it back, and **⇪ Export** writes it the way it's turned: **3MF / STL** for your slicer, **OBJ** in millimetres, or **GLB** in metres, Y up — glTF's own convention, so Blender, Unity and Godot open it at its real size. And when a Planner part is flagged, **✎ Ask the model to fix it** takes it back to the [Planner] with the Fabricator's findings for your model to fix — one undoable step — ready to send back and check again.
+
+**What it deliberately is not: a slicer.** Slicers are decades of craft and you already own one; the Fabricator's job is to make sure what you hand it will work. Nothing in it touches the network. Every check runs on your machine — in moments for a typical part, a few seconds for a huge downloaded mesh — on a worker thread, so the window never freezes while it works.
+
+<a name="blueprint"></a>
+#### 🔹 Every file gets a blueprint
+
+Moving a 3D file between programs is where real-world size usually dies. STL, OBJ and PLY carry **no units at all**, so a part drawn in inches lands 25.4× too small, a Blender export in metres arrives as a speck, and a Y-up file turns up lying on its back. Leviathan reads a mesh the way it reads a model — **blueprint first**. Before anything comes over, it names the format from the file's own bytes (never trusting the extension), reads the body exactly as stored — every part placed by its own transforms — and notes what the file *declares* against what the body *is*:
+
+- **Declared** — glTF is metres and Y up by definition; a 3MF states its unit; an FBX records its unit scale, its axis system and the program that wrote it. Those are read, not guessed.
+- **Not declared** — for STL, OBJ and PLY it weighs the evidence: how big the object would be in each unit, and whether its design dimensions — the gaps between its flat faces — come out as round numbers in one of them (a metric part saved in inches gives itself away). It says how sure it is, and when the evidence is genuinely split it says so and names the runner-up rather than guessing with confidence.
+
+Then the differences are applied automatically — millimetres, Z up, on the bed — and listed. In the Fabricator the **FILE** panel shows the blueprint with **Units** and **Up** switches, so a file that didn't say can be put right in one click without being read again; the Planner asks once, and only when a file's units are honestly ambiguous. It reads STL, 3MF, OBJ, PLY, glTF/GLB and FBX 7 (2011 on, binary or text). Nothing is ever fetched: a glTF that points at the web or outside its own folder is refused, and so are Draco- or meshopt-compressed meshes (export without compression).
+
+The readers are Leviathan's own — no extra library in the build — and checked against independent ones on files from real exporters: FBX against three.js's own FBXLoader (Blender, Maya and Mixamo files, binary and text), OBJ, PLY, STL and glTF against trimesh. Same triangles, same placement, same surface area.
 
 ---
 
@@ -372,7 +408,7 @@ Here is everything you will find, top to bottom:
 
 **🔹 Server for other programs** — lets a game engine, a script, or any other program on this machine use the models Leviathan runs, over a local HTTP endpoint (127.0.0.1:8080, OpenAI-compatible *and* Leviathan-native). Flip on to start, off to stop. [Using Leviathan from other programs].
 
-**🔹 Token budget** — how much a model may write in **one reply**, set per surface: **Chat**, **Inline Studio** and the **Graph** — each a place a model actually writes. A slider from **512** up to **∞**. This is *reply* length, and it is separate from context length: a big context does not make replies longer, this slider does. ∞ is bounded only by the model's own context window — your hardware, not a built-in cap. (The Planner joins this list as its direct model-build path lands.)
+**🔹 Token budget** — how much a model may write in **one reply**, set per surface: **Chat**, **Inline Studio**, the **Graph** and the **Planner** — each a place a model actually writes. A slider from **512** up to **∞**. This is *reply* length, and it is separate from context length: a big context does not make replies longer, this slider does. ∞ is bounded only by the model's own context window — your hardware, not a built-in cap.
 
 **🔹 Context length** — the model's **single-pass window**: how big one prompt can be (system prompt + any project files + any ANI reference + your message) and the range its positions cover. From **2048** up to **Max** — the model's own full trained window, costing more VRAM the higher you go, bounded by your card and not by us. This is *not* long-term memory — the fractal `.fqm` cascade gives enormous effective recall at any window — so raise it only when a single prompt is genuinely large, such as Inline Studio with ANI injection. It was silently pinned at 2048 before; now it is yours. Takes effect the next time a model is loaded.
 
