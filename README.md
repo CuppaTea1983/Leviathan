@@ -659,7 +659,7 @@ Licensed under **MIT License**.
 Free to use, share and adapt, with attribution. Not for commercial use.
 
 - **Full licence:** https://spdx.org/licenses/MIT.html
-- **Source and releases:** https://github.com/CuppaTea1983/Sovereign
+- **Source and releases:** https://github.com/CuppaTea1983/Leviathan
 - **Whitepapers:** https://zenodo.org/records/23004932 — the research behind the memory, compression and knowledge-routing work, permanently archived and citable.
 - **Huggingface:** https://huggingface.co/spaces/Omega-Dev/Leviathan
 
