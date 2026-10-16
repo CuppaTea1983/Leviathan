@@ -654,11 +654,11 @@ Some of this is deliberate. It is worth stating plainly rather than leaving you 
 
 **Leviathan** — Michael Ricky Neal · © 2026
 
-Licensed under **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)**.
+Licensed under **MIT License**.
 
 Free to use, share and adapt, with attribution. Not for commercial use.
 
-- **Full licence:** https://creativecommons.org/licenses/by-nc/4.0/
+- **Full licence:** https://spdx.org/licenses/MIT.html
 - **Source and releases:** https://github.com/CuppaTea1983/Sovereign
 - **Whitepapers:** https://zenodo.org/records/23004932 — the research behind the memory, compression and knowledge-routing work, permanently archived and citable.
 - **Huggingface:** https://huggingface.co/spaces/Omega-Dev/Leviathan
