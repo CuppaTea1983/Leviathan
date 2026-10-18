@@ -2,6 +2,8 @@
 
 <img src="https://archive.org/download/leviathan-logo-github/leviathan%20logo%20github.jpg" width="1200" />
 
+<p align="center"><a href="#requirements"><img src="screenshots/badge-windows.svg" height="28" alt="Runs on Windows" /></a> <a href="#requirements"><img src="screenshots/badge-nvidia.svg" height="28" alt="Needs an NVIDIA graphics card: GTX 16 / RTX 20 or newer" /></a></p>
+
 **Local AI models, running directly on your graphics card. No server, no cloud, no account, no subscription, no telemetry.**
 
 Leviathan loads a language model straight into your GPU's memory and talks to it there. Nothing is sent anywhere. There is no background service, no Docker container, no Python to install, and no API key. You open the app, pick a model, and type.
@@ -11,6 +13,17 @@ Leviathan loads a language model straight into your GPU's memory and talks to it
 What makes it different from the other ways of running a model locally is what happens *around* the model: Leviathan gives it a memory that survives closing the app, a way to be taught things without retraining, and a way for your other programs — a game engine, a script, a tool you wrote — to use the model Leviathan runs.
 
 > **Leviathan is the host. The model is the guest.**
+
+<a name="see-it-running"></a>
+### 🔹 See it running
+
+Every picture on this page is the real app, driven by a real model on one RTX 4080 — nothing is mocked up.
+
+<p align="center"><img src="screenshots/chat.gif" width="900" alt="Chatting with Qwen 2.5 Coder 7B in Leviathan, in real time" /></p>
+<p align="center"><sub>Real time on an RTX 4080, nothing edited: Qwen 2.5 Coder 7B (Q8_0) writing each answer. How fast depends on your card — mostly its memory bandwidth — so a newer card is quicker and a smaller one slower.</sub></p>
+
+<p align="center"><img src="screenshots/pipeline.gif" width="900" alt="One 3D part through Inline Studio, the Graph, the Planner and the Fabricator" /></p>
+<p align="center"><sub>From a sentence to a print-ready part, in four real screenshots: the model writes the CAD script in Inline Studio → it becomes nodes in the Graph → the model drills a screw hole when asked, in the Planner → the Fabricator signs it off.</sub></p>
 
 ---
 
@@ -22,7 +35,7 @@ What makes it different from the other ways of running a model locally is what h
 - 🔷 [The tabs](#the-tabs)
 - 🔷 [Chat](#chat) · 🔷 [Models](#models) · 🔷 [Studio](#studio) · 🔷 [Cores](#cores) · 🔷 [Memory Vault](#memory-vault) · 🔷 [Traits](#traits) · 🔷 [Inline Studio](#inline-studio) · 🔷 [Graph](#graph) · 🔷 [Planner](#planner) · 🔷 [Fabricator](#fabricator) · 🔷 [Settings](#settings)
 - 🔷 [The systems](#the-systems)
-- 🔶 [Persistent memory](#persistent-memory) · 🔶 [Knowledge routing](#knowledge-routing) · 🔶 [Reasoning layer](#reasoning-layer) · 🔶 [Forensic Grid](#forensic-grid) · 🔶 [Surface Sight](#surface-sight) · 🔶 [Recycling cloud answers](#recycling-cloud-answers) · 🔶 [Episodic memory](#episodic-memory) · 🔶 [Second-opinion fact-check](#second-opinion-fact-check) · 🔶 [Any model, described by itself](#any-model-described-by-itself) 
+- 🔶 [Persistent memory](#persistent-memory) · 🔶 [Knowledge routing](#knowledge-routing) · 🔶 [Reasoning layer](#reasoning-layer) [Forensic Grid](#forensic-grid) · 🔶[Surface Sight](#surface-sight) · 🔶 [Recycling cloud answers](#recycling-cloud-answers) · 🔶 [Episodic memory](#episodic-memory) · 🔶 [Second-opinion fact-check](#second-opinion-fact-check) · 🔶 [Any model, described by itself](#any-model-described-by-itself)
 - 🔴 [The security membrane](#the-security-membrane)
 - 🟣 [What ANI is — and why it matters](#what-ani-is-and-why-it-matters) — **the thesis, in plain words**
 - 🔷 [Using Leviathan from other programs](#using-leviathan-from-other-programs)
@@ -49,6 +62,8 @@ That is the whole list. You do not need Python, the CUDA toolkit, Visual Studio,
 
 <a name="first-run"></a>
 ## 🔷 First run
+
+<p align="center"><img src="screenshots/first-run.png" width="900" alt="Leviathan's welcome card on first run, with the graphics-card check" /></p>
 
 The first time you open Leviathan, a welcome card sits over the chat window with three steps and a report on your graphics card. It stays until you have a model, and it always comes back if the GPU check fails, so you are never left guessing why nothing works.
 
@@ -95,7 +110,7 @@ A `.fqm` is that memory, written to a file. When you load the model again, the m
 
 **The save is atomic.** A `.fqm` is written whole or not at all. The new memory is built in full, then swapped in for the old one in a single step the operating system guarantees cannot be interrupted part-way — so a crash, a power cut or a pulled plug mid-save leaves you with the *previous* good memory, never a torn or half-written file. Memory you can trust is memory that cannot corrupt itself, and this atomic write is the quiet mechanism that makes "it just remembers" safe to rely on rather than a thing you hope survived.
 
-**It compresses as it grows — and you decide how.** A conversation that ran for months would make a naive memory file swell without limit. A `.fqm` does not: it keeps your most recent exchanges exact and folds older ones down through a *fractal cascade* of progressively compacted levels, so the file **plateaus** in size while its effective reach runs into the hundreds of millions of tokens even at a modest window — recent memory stays sharp, distant memory ages gracefully instead of being thrown away. The whole thing is yours to tune in **Settings → Memory storage**: pick the storage stage — **half-size** (the default: a float16 store at the standard precision, roughly halving every file), **lossless**, or an experimental **Shannon** stage — and set, with a slider, how large the exact window is before the cascade folds the rest. This is a genuine compression system working under your hand, not a format that can only grow.
+**It compresses as it grows — and you decide how.** A conversation that ran for months would make a naive memory file swell without limit. A `.fqm` does not: it keeps your most recent exchanges exact and folds older ones into summaries that grow coarser with age — each level eight times coarser than the one above, over seven levels — so the file grows a level at a time, not with every turn, and nothing is let go until the deepest level fills. Reach is not recall, and we measured the difference: the summaries keep the drift of a conversation, not its specifics — a passage folded two levels down left no measurable trace, and facts pushed out of the exact window came back one time in ten from the `.fqm` alone, the same as no memory. Recent memory stays sharp; the facts you need kept for good belong to [episodic memory](#episodic-memory), which is text and doesn't fade. The whole thing is yours to tune in **Settings → Memory storage**: pick the storage stage — **half-size** (the default: a float16 store at the standard precision, roughly halving every file), **lossless**, or an experimental **Shannon** stage — and set, with a slider, how large the exact window is before the cascade folds the rest. This is a genuine compression system working under your hand, not a format that can only grow.
 
 **One per model.** The memory is named after the model and lives in your FQM Database folder. Two models loaded at once do not share it or bleed into each other — each wakes up with its own past and no one else's. (Making a model that *sounds like you*, or that already *knows your material*, is a separate and cleaner job: your register is ANI's to mirror — see [ANI Voice] — and your material lives in [knowledge banks], readable by any model, rather than baked into one model's memory.)
 
@@ -126,6 +141,8 @@ Eleven tabs down the left side.
 ### 🔷 Chat
 
 Where you actually talk to the model.
+
+<p align="center"><img src="screenshots/chat.png" width="900" alt="A two-turn chat with Qwen 2.5 Coder 7B, with the Route panel on the right" /></p>
 
 Type, press Start or `Ctrl+Enter`, and the reply streams back as it is generated. You can interrupt mid-answer — including during the long pause at the start while the model reads a large prompt — and it stops immediately rather than finishing the paragraph first.
 
@@ -185,12 +202,15 @@ Routes work only from what the two models already know. They do not browse the w
 <a name="studio"></a>
 ### 🔷 Studio
 
+<p align="center"><img src="screenshots/studio-convert.png" width="900" alt="Studio's Convert to .lev tool listing a GGUF ready to convert" /></p>
+
 Where you build the things Leviathan runs on. Nearly every control has a sensible default; the notes below tell you which ones are worth touching and which to leave alone.
 
 **🔹 Convert → .lev**
 Turns a `.gguf` (or a safetensors model folder) into a `.lev`, the format Leviathan actually runs on. The first thing you will use, and a one-time job per model. If a model is not supported, it is refused here — with an explanation of exactly which parts Leviathan does not understand — *before* the multi-gigabyte conversion starts, not after.
 - **Model list** — every model Leviathan found, with buttons to select **All**, **None**, or just the **Unconverted** ones. Tick what you want and convert in a batch.
 - **Q8_0 mode** — how eight-bit models are laid out. **Split (default)** is the safe choice and what you want almost always. *Shannon* and *Tensor Core F16* are alternative layouts for particular cards; leave it on Split unless you have a specific reason. (Applies to `.gguf` only — safetensors always convert as raw F16.)
+- **Which downloads stay compact** — all of the usual ones. Leviathan computes directly on Q2_K, Q3_K, Q4_K, Q5_K, Q6_K, Q8_0, Q4_0, Q4_1, Q5_0, Q5_1, every IQ type (IQ1_S, IQ1_M, IQ2_XXS, IQ2_XS, IQ2_S, IQ3_XXS, IQ3_S, IQ4_NL, IQ4_XS), F16, BF16 and F32, so a `.lev` is the size of the `.gguf` — the `_K_M` / `_K_S` / `_K_L` mixes, the imatrix "IQ" files and MoE models included. (For scale: a 32B model at IQ3_XXS is about a 13 GB file.) The rare leftovers (ternary TQ1_0/TQ2_0, MXFP4) are turned into F16; the converter says so and says how much bigger the file got.
 
 **🔹 Analyze GGUF**
 Reads a `.gguf` (or safetensors) file's header without loading the model: architecture, parameter count, tensor types, the key settings (context length, layers, attention heads, experts) and what its tokenizer declares — the special tokens and whether it carries a chat template. Nothing is changed.
@@ -287,6 +307,9 @@ It measures what the model **did**, not what it claims about itself or what its 
 
 *Autonomous coding · one model, or a team taking turns on a shared project.*
 
+<p align="center"><img src="screenshots/inline-studio.png" width="900" alt="Inline Studio after Qwen 2.5 Coder 7B wrote roman.py from a one-line task" /></p>
+<p align="center"><sub>One line of task at the top; the model wrote <code>roman.py</code>, the execute-gate ran it, and the project converged.</sub></p>
+
 Give it a task and a local model writes the code — complete files, not snippets. You never have to teach the model to "use a code tool": it writes files the way it already wants to, marking each one, and Leviathan reads what it writes into a project you can open, edit, and save. Tick one model and it works alone; tick several and they **take turns** on the same files — one drafts, the next refines, a third adds — each reading the project so far and the whole running team chat.
 
 **Give them names.** Double-click a model in [Models] and rename it — Bob, Bill, whatever you like. Because every model sees the running conversation, named models talk *to each other*: "thanks Bill, that helps a lot — I'll take the parser from here." It is a real back-and-forth, not a relay of one-line notes, and they genuinely discuss how to improve the code.
@@ -308,11 +331,22 @@ The right-hand column is the team — the models taking part on top, their runni
 
 *Build with nodes — and let a model build with you.*
 
+<p align="center"><img src="screenshots/graph.png" width="900" alt="The model's phone-stand script as shape nodes in the Graph, with the 3D part beside it" /></p>
+<p align="center"><sub>The model's phone-stand script, turned into 9 shape nodes and 9 parameters — checked to make exactly the same part.</sub></p>
+
 A visual node canvas: wire up shapes, numbers, expressions and snippets of code into a graph that computes a result. These are Leviathan's **own** nodes, not a bolted-on third-party pack — each does one clear thing, and the wires carry values between them.
 
 **Eighty-seven of them, in fifteen families.** **Maths** — Math, Function, Clamp, Map Range, Mix, Snap to a step, a seeded Random (the same seed, the same numbers), Range, Statistics, Constants, Unit Convert. **Logic** — Compare, and / or / xor / not, Switch. **Text** — Join, Split, Replace, Find, Format, Number ↔ Text. **Lists** — Get Item, Slice, Sort, Unique, and Map Numbers / Keep Where, which take a formula. **Data** — Get and Set Field, Keys & Values, CSV → Table, Column. **Thirty shape nodes**, among them Tube, Torus, Rounded Box, Regular Polygon (six sides and you have a nut trap), Offset, Grid Array, Trim, Place On Bed, Simplify and Cross Section. **Measure** and **Bounds**, so one part's real size can drive the next — a lid that sits exactly on its box. **Show**, which puts just the answers in the log. And **Ask Model** / **Ask ANI**, which put your own model or your knowledge banks inside a pipeline. You don't have to browse for them: the **🔎 search** beside the palette finds any node by its name or by what it does — *nut trap* finds Regular Polygon, *average* finds Statistics — and Enter drops the top match onto the canvas. A setting with fixed choices is a menu, not a guess. A graph built only from pure nodes re-makes its part live as you edit; formulas are arithmetic only; and nothing reaches the internet — the one node that speaks HTTP talks only to a model server on your own PC.
 
 What lifts it past an ordinary node editor is that a **model — or ANI — can read and build the graph alongside you.** The old trap with model-driven node tools was that the model was never told which nodes or ports existed, so it guessed and the whole thing fell apart — Leviathan hands the model that context, so it actually knows the graph it is working in and can lay one out or extend it on request. Ask in the graph's own chat box, or press **◆ ANI** to put the question to your knowledge banks instead. In the public build a model may *propose and build* a graph, but **only you run it**: the host keeps the trigger, never the guest. The model's graph-building turns draw on their own **Token budget**, set per surface in [Settings] like every other place a model writes.
+
+**Models that speak CAD.** A model trained to write whole parts in *Compact IR* — such as cad0 — is recognised: **▶ Build** asks it once, in its own format, and Leviathan turns its answer into nodes line by line, reading each line out in plain words under the canvas as it lands. Nothing the model writes is run as code — its answer is data, translated into Leviathan's own CAD script and checked to make exactly the same part.
+
+<p align="center"><img src="screenshots/graph_build.gif" width="900" alt="cad0 building a mounting plate in the Graph: its Compact IR becomes nodes one line at a time, each line read out under the canvas, then the 3D part appears" /></p>
+<p align="center"><sub>Real time: ▶ Build with <a href="https://huggingface.co/campedersen/cad0">cad0</a> (Cam Pedersen's MIT-licensed text-to-CAD fine-tune of Qwen 2.5 Coder 7B), given its model card's own example — "50x30mm mounting plate with 4 corner holes". It answers in 13 lines of Compact IR; each becomes nodes as you watch.</sub></p>
+
+<p align="center"><img src="screenshots/graph_build.png" width="900" alt="The finished mounting plate beside its whole graph, with every line of cad0's answer read out under the canvas" /></p>
+<p align="center"><sub>The result: 50 × 30 × 4.5 mm with four corner holes, watertight — the whole graph on the left, the part on the right.</sub></p>
 
 And a graph is not the end of the line. When one describes a shape, **⇢ Send to Planner** hands it straight to the 3D Planner as a solid part. That is the thread running through these tabs — **code → graph → part** — each handing on to the next.
 
@@ -322,6 +356,9 @@ And a graph is not the end of the line. When one describes a shape, **⇢ Send t
 ### 🔷 Planner
 
 *A real 3D modelling engine, built from scratch — parametric, watertight, and in true-to-life scale.*
+
+<p align="center"><img src="screenshots/planner.gif" width="900" alt="Asking the model in the Planner for a screw hole through the base; the edit lands as a history step" /></p>
+<p align="center"><sub>Real time: asked in plain words for a screw hole through the base, the model's edit lands as step 2 in the history — Undo takes it back.</sub></p>
 
 The Planner is not a preview pane or a toy. It is a genuine **parametric CAD engine**, written in-house, where you build a solid part the way an engineer does — a sketch, an extrude, a cut, a pushed face — with every step recorded, so the whole part is a *history* you can walk back through and change. Undo is not a snapshot; it steps back through the real operations that made the part, and the part rebuilds itself from them.
 
@@ -336,7 +373,7 @@ The Planner is not a preview pane or a toy. It is a genuine **parametric CAD eng
 
 **And it is driven by more than the mouse.** A graph from the [Graph] tab can be sent in as a solid part — *CAD as code* — and the same pipeline runs the other way too, from Inline Studio's code, to a graph, to a finished part. Model by hand, by node, or by code, all into one engine.
 
-**And by instruction — a model that knows where it is.** Bottom right sits a chat with the model you've picked — shown as chips above it, the same pick Inline Studio and the Graph use, so the model you chose in one tab is the model in the next — or **◆ ANI**, answering from your knowledge banks. The old trap with models and 3D tools is that the model never knows what it's looking at, so it guesses; the Planner hands it the part instead — its real size in millimetres, how it was made, and any face you've picked. Ask *"a 6 mm hole through the middle"* or *"a 10 mm lip around the top"* and the model answers in the CAD library's own language, against the part as it stands — `result = part - cylinder(h=20, d=6).move(40, 30, -1)` — which Leviathan runs in the same locked-down runner as everything else and lands as **one step in the history**: ↶ Undo takes it back. If its script fails, the error goes back to it once to repair; anything outside the safe CAD subset never runs at all; and an answer to a question changes nothing. It works on its own **Token budget** in [Settings].
+**And by instruction — a model that knows where it is.** Bottom right sits a chat with the model you've picked — shown as chips above it, the same pick Inline Studio and the Graph use, so the model you chose in one tab is the model in the next — or **◆ ANI**, answering from your knowledge banks. The old trap with models and 3D tools is that the model never knows what it's looking at, so it guesses; the Planner hands it the part instead — its real size in millimetres, how it was made, every face and hole measured from the part itself (each with an id, so the model can place a hole, slot or boss just by naming the face, and Leviathan works out the coordinates), and any face you've picked. Ask *"a 6 mm hole through the middle"* or *"a 10 mm lip around the top"* and the model answers in the CAD library's own language, against the part as it stands — `result = part - cylinder(h=20, d=6).move(40, 30, -1)` — which Leviathan runs in the same locked-down runner as everything else and lands as **one step in the history**: ↶ Undo takes it back. If its script fails, the error goes back to it once to repair; anything outside the safe CAD subset never runs at all; and an answer to a question changes nothing. It works on its own **Token budget** in [Settings].
 
 That closes the loop Leviathan is built around: **you type, a model designs it — in the Graph or right here — it becomes a watertight part, and the [Fabricator] proves it printable and writes the 3MF/STL a printer takes.** When the Fabricator flags something, **✎ Ask the model to fix it** brings the part back here with the findings, and the model's fix arrives as one more undoable step. You say what you want; a model builds it — and then makes it real.
 
@@ -348,6 +385,9 @@ This is early, and it is deliberately ambitious. It already reads six formats an
 ### 🔷 Fabricator
 
 *Prove it printable — then hand it to your slicer.*
+
+<p align="center"><img src="screenshots/fabricator.png" width="900" alt="The Fabricator's checks passing for the phone stand on a Prusa MK4" /></p>
+<p align="center"><sub>Watertight, fits the bed, no overhangs, walls thick enough, real contact with the plate — and a rough cost in filament.</sub></p>
 
 The last step from idea to object. A failed print usually announces itself six hours and a spool of filament too late; the Fabricator catches it before the first layer. A part arrives from the [Planner] (⇢ Send to Fabrication opens it here), from the PROJECT column, or from anywhere on your disk with **📂 Open…** — any 3D file: STL, 3MF, OBJ, PLY, glTF/GLB or FBX, read at its real size by its [blueprint](#blueprint) — so it checks the model you just downloaded, too, without copying it anywhere.
 
@@ -381,6 +421,8 @@ The readers are Leviathan's own — no extra library in the build — and checke
 <a name="settings"></a>
 ### 🔷 Settings
 
+<p align="center"><img src="screenshots/settings.png" width="900" alt="Settings: the security membrane, episodic memory and fact-check switches" /></p>
+
 One scrollable tab holding every switch and dial in Leviathan, grouped by what it governs. Nothing here needs a restart — a change takes effect on your next message, and every one is remembered between runs. (The one control that *used* to live here, reasoning depth, now sits by the chat box instead — see [Chat] and [Reasoning layer].)
 
 Here is everything you will find, top to bottom:
@@ -413,9 +455,11 @@ Here is everything you will find, top to bottom:
 
 **🔹 Token budget** — how much a model may write in **one reply**, set per surface: **Chat**, **Inline Studio**, the **Graph** and the **Planner** — each a place a model actually writes. A slider from **512** up to **∞**. This is *reply* length, and it is separate from context length: a big context does not make replies longer, this slider does. ∞ is bounded only by the model's own context window — your hardware, not a built-in cap.
 
-**🔹 Context length** — the model's **single-pass window**: how big one prompt can be (system prompt + any project files + any ANI reference + your message) and the range its positions cover. From **2048** up to **Max** — the model's own full trained window, costing more VRAM the higher you go, bounded by your card and not by us. This is *not* long-term memory — the fractal `.fqm` cascade gives enormous effective recall at any window — so raise it only when a single prompt is genuinely large, such as Inline Studio with ANI injection. It was silently pinned at 2048 before; now it is yours. Takes effect the next time a model is loaded.
+**🔹 Context length** — the model's **single-pass window**: how big one prompt can be (system prompt + any project files + any ANI reference + your message) and the range its positions cover. From **2048** up to **Max** — the model's own full trained window, costing more VRAM the higher you go, bounded by your card and not by us. This is *not* long-term memory: the `.fqm` and episodic memory carry a conversation across sessions at any window (the `.fqm` keeps the newest part exact and folds the rest into ever-coarser summaries). So raise it only when a single prompt is genuinely large, such as Inline Studio with ANI injection. It was silently pinned at 2048 before; now it is yours. Takes effect the next time a model is loaded.
 
-**🔹 Memory storage (.fqm)** — how a model's persistent memory is written to disk; the mechanism is covered in full under [Persistent memory]. Choose the storage stage — **half-size** (float16, the default: about half the size, at the standard KV precision), **lossless**, or an experimental **Shannon** stage — and set the **compaction window**: how many recent tokens stay exact before the fractal cascade folds the older ones down into its compact deep levels, so a long chat's `.fqm` plateaus instead of climbing forever.
+**🔹 Memory storage (.fqm)** — how a model's persistent memory is written to disk; the mechanism is covered in full under [Persistent memory]. Choose the storage stage — **half-size** (float16, the default: about half the size, at the standard KV precision), **lossless**, or an experimental **Shannon** stage — and set the **compaction window**: how many recent tokens stay exact before the cascade folds the older ones into its summary levels, so a long chat's `.fqm` grows a level at a time instead of with every turn.
+
+**🔹 Appearance** — your own colour for Leviathan's frame. Pick it with **R / G / B sliders** or a preset, see it in a preview, and **Apply** repaints the window on the spot; it's remembered next time. Only the frame changes — the window, panels, fields and borders. Buttons, the accent colour and your work (graphs, 3D views, code) keep their own colours, and every panel keeps exactly the brightness it has now, so text stays just as readable whatever colour you choose. **Deep sea** puts the original look back. A **Window opacity** slider makes the whole window see-through, down to half.
 
 **🔹 This machine** — what Leviathan found: your graphics card, and the exact folder your data is being written to.
 
@@ -445,6 +489,7 @@ The tabs above are the surfaces — what you open, click and type into. These ar
 - Things you explained last week are still known this week.
 - Corrections stick. Tell it you prefer something done a certain way and it stays told.
 - The memory is not a transcript being re-read. It is the model's own representation, so it does not consume your context window the way pasting a summary does.
+- Long conversations keep their order. However long a chat runs, your latest turns stay the latest: when the model's position range would run out, the whole memory slides back along it instead of wrapping round on itself.
 - What it keeps is the *substance of the exchange* — your messages and its answers. The invisible scaffolding Leviathan wraps around each turn (the reasoning nudges, the safety checks, the context it assembles for that one reply) steers the answer and is then left out of the memory. Knowledge is kept; the machinery around it is not, so the memory stays lean and on-point instead of bloating with structure that carries no meaning.
 
 **When it saves.** After your first exchange, then every fifth. No button. If it cannot save, it tells you — silence would be worse than a warning, because a memory system that quietly does nothing is indistinguishable from one that works. Each save is **atomic**: the new memory is written in full and swapped in as one uninterruptible step, so a crash or power cut mid-save leaves the previous good memory standing, never a corrupted file. The memory can grow, and it can fail to save, but it cannot tear.
@@ -504,19 +549,19 @@ What lands here goes into the same shared space and is answerable, by any model 
 
 **It costs nothing extra.** This is a single pass. Leviathan does not run the model several times or spend anything on a reasoning answer — it simply gives the one answer more to work from.
 
-**Four depths, or let it decide.** A compact **🧠** selector sits right by the chat box — no digging through Settings — where you choose how hard the model is pushed: **Light**, **Medium**, **Heavy**, **Max**, from a brief nudge to a full multi-step template with an explicit instruction to check its work and verify before answering. Depth here means *thoroughness of the answer*, not a token bill. Or leave it on **Auto** and Leviathan reads each question for itself. It weighs not only *what* you ask — a quick factual query stays light, a *"derive this from first principles and compare it, step by step"* climbs to Max — but *how* you ask it: lean on the message the way people do when there's more behind it than the words say (capitals, an urgent tone, a trailing "…") and it leans back, raising the depth the way a raised voice would. **Off** turns the whole thing off — worth having, since a model that only ever generates freeform text may not want a scaffold at all.
+**Four depths, or let it decide.** A compact **🧠** selector sits right by the chat box — no digging through Settings — where you choose how hard the model is pushed: **Light**, **Medium**, **Heavy**, **Max**, from a brief nudge to a full multi-step template with an explicit instruction to check its work and verify before answering. Depth here means *thoroughness of the answer*, not a token bill. Or leave it on **Auto** — where it starts — and Leviathan reads each question for itself. It weighs not only *what* you ask — a quick factual query stays light, a *"derive this from first principles and compare it, step by step"* climbs to Max — but *how* you ask it: lean on the message the way people do when there's more behind it than the words say (capitals, an urgent tone, a trailing "…") and it leans back, raising the depth the way a raised voice would. **Off** turns the whole thing off — worth having, since a model that only ever generates freeform text may not want a scaffold at all.
 
 **Match the depth to your model — the selector shows you how.** The scaffold has to suit the size of the model carrying it: too much structure for too small a model overwhelms it and the answer falls apart, so depth scales with parameters. The selector puts the guide right next to each mode — a size marker telling you the smallest model that handles that depth well:
 
 | Depth | Best for | What happens |
 |---|---|---|
 | **Off** | any model — and the *only* safe setting for a **1B** | a 1B has no room for a scaffold; reasoning collapses it, so it runs clean on its own |
-| **Light · 7B+** | **7B** and up | a gentle nudge; a 7B handles this well and writes genuinely better |
+| **Light · 7B only** | **7B** only | a gentle nudge; a 7B handles this well and writes genuinely better |
 | **Medium · 14B+** | **14B** and up | a fuller scaffold; a 14B produces complex, coherent, well-structured answers |
 | **Heavy · 32B+** | **32B** and up | a deep multi-step template |
 | **Max · 70B+** | **70B** and up | the fullest push, check-your-work-and-verify |
 
-A bigger model can always use a *lower* mode safely — it just under-uses the room. A *smaller* model on a mode above its marker is where it goes wrong, fast. The 1B/7B/14B rows are measured on real models; 32B and 70B follow the same doubling pattern and are the recommended starting points rather than tested results — tune to taste. (**Auto** sidesteps the choice by reading the question, but on a very small model keep it modest — a hard question could pull the depth higher than a 1B can carry.)
+A bigger model can use a *lower* mode safely — it just under-uses the room, which is why Light is marked for the 7B alone. A *smaller* model on a mode above its marker would go wrong fast, so Leviathan doesn't let it: **every model is locked to the depths its size can carry** — a 7B never goes past Light and a 1B runs Off, whatever the selector says, and the status bar tells you when a pick is held back. (The size comes from the model's name, its file name, or failing both its own weights.) The 1B/7B/14B rows are measured on real models; 32B and 70B follow the same doubling pattern and are the recommended starting points rather than tested results — tune to taste. **Auto**, the default, is safe on any size for the same reason: a hard question can pull a 70B all the way to Max, while the same question gives a 7B Light.
 
 **It feeds the routing, too.** What the reasoning layer works out a question is *about* also nudges [knowledge routing] — a coding question leans the router a little further toward your coding banks — but only ever as a gentle reinforcement added on top, never overriding where the knowledge actually comes from.
 
@@ -570,7 +615,7 @@ It is careful about what it keeps. A near-duplicate of something already there i
 <a name="episodic-memory"></a>
 ### 🔶 Episodic memory
 
-A model in Leviathan remembers your conversations — and that memory is **its own**. Each model keeps a running episodic record of what *it* discussed with you, recalled across sessions, so you can pick a thread back up weeks later and it knows what you meant.
+A model in Leviathan remembers your conversations — and that memory is **its own**. Each model keeps a running episodic record of what *it* discussed with you, recalled across sessions, so you can pick a thread back up weeks later and it knows what you meant. It finds past turns by the words in your question, so "what's my sister called?" finds the turn where you said "my sister's name is…"; a question that shares no word with the old turn won't find it. Measured on a 7B model: ten facts planted, then pushed out of the `.fqm`'s exact window by later conversation, then asked after a restart. Episodic memory brought back all ten; the `.fqm` alone, one — the same as no memory at all.
 
 **Per model, by design.** A model recalls only its *own* past turns — never another model's. This matters more than it sounds: pooling chat memory across models is how you end up with a model answering in a voice, and with "memories", that were never its own — a split personality that reads as hallucination. So the memory is kept strictly per model, and it never folds into ANI's shared knowledge banks either. Your episodic history steers the model that lived it, and nothing else.
 
