@@ -35,7 +35,7 @@ Every picture on this page is the real app, driven by a real model on one RTX 40
 - 🔷 [The tabs](#the-tabs)
 - 🔷 [Chat](#chat) · 🔷 [Models](#models) · 🔷 [Studio](#studio) · 🔷 [Cores](#cores) · 🔷 [Memory Vault](#memory-vault) · 🔷 [Traits](#traits) · 🔷 [Inline Studio](#inline-studio) · 🔷 [Graph](#graph) · 🔷 [Planner](#planner) · 🔷 [Fabricator](#fabricator) · 🔷 [Settings](#settings)
 - 🔷 [The systems](#the-systems)
-- 🔶 [Persistent memory](#persistent-memory) · 🔶 [Knowledge routing](#knowledge-routing) · 🔶 [Reasoning layer](#reasoning-layer) · 🔶 [Forensic Grid](#forensic-grid) · 🔶 [Surface Sight](#surface-sight) · 🔶 [Recycling cloud answers](#recycling-cloud-answers) · 🔶 [Episodic memory](#episodic-memory) · 🔶 [Second-opinion fact-check](#second-opinion-fact-check) · 🔶 [Any model, described by itself](#any-model-described-by-itself)
+- 🔶 [Persistent memory](#persistent-memory) · 🔶 [Knowledge routing](#knowledge-routing) · 🔶 [Reasoning layer](#reasoning-layer) · 🔶 [Forensic Grid](#forensic-grid) · 🔶  [Surface Sight](#surface-sight) · 🔶 [Recycling cloud answers](#recycling-cloud-answers) · 🔶 [Episodic memory](#episodic-memory) · 🔶 [Second-opinion fact-check](#second-opinion-fact-check) · 🔶 [Any model, described by itself](#any-model-described-by-itself)
 - 🔴 [The security membrane](#the-security-membrane)
 - 🟣 [What ANI is — and why it matters](#what-ani-is-and-why-it-matters) — **the thesis, in plain words**
 - 🔷 [Using Leviathan from other programs](#using-leviathan-from-other-programs)
