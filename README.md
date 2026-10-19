@@ -35,7 +35,7 @@ Every picture on this page is the real app, driven by a real model on one RTX 40
 - 🔷 [The tabs](#the-tabs)
 - 🔷 [Chat](#chat) · 🔷 [Models](#models) · 🔷 [Studio](#studio) · 🔷 [Cores](#cores) · 🔷 [Memory Vault](#memory-vault) · 🔷 [Traits](#traits) · 🔷 [Inline Studio](#inline-studio) · 🔷 [Graph](#graph) · 🔷 [Planner](#planner) · 🔷 [Fabricator](#fabricator) · 🔷 [Settings](#settings)
 - 🔷 [The systems](#the-systems)
-- 🔶 [Persistent memory](#persistent-memory) · 🔶 [Knowledge routing](#knowledge-routing) · 🔶 [Reasoning layer](#reasoning-layer) · 🔶 [Forensic Grid](#forensic-grid) · 🔶  [Surface Sight](#surface-sight) · 🔶 [Recycling cloud answers](#recycling-cloud-answers) · 🔶 [Episodic memory](#episodic-memory) · 🔶 [Second-opinion fact-check](#second-opinion-fact-check) · 🔶 [Any model, described by itself](#any-model-described-by-itself)
+- 🔶 [Persistent memory](#persistent-memory) · 🔶 [Knowledge routing](#knowledge-routing) · 🔶 [Reasoning layer](#reasoning-layer) · 🔶  [Forensic Grid](#forensic-grid) · 🔶 [Surface Sight](#surface-sight) · 🔶 [Recycling cloud answers](#recycling-cloud-answers) · 🔶 [Episodic memory](#episodic-memory) · 🔶 [Second-opinion fact-check](#second-opinion-fact-check) · 🔶 [Any model, described by itself](#any-model-described-by-itself)
 - 🔴 [The security membrane](#the-security-membrane)
 - 🟣 [What ANI is — and why it matters](#what-ani-is-and-why-it-matters) — **the thesis, in plain words**
 - 🔷 [Using Leviathan from other programs](#using-leviathan-from-other-programs)
@@ -215,38 +215,56 @@ Turns a `.gguf` (or a safetensors model folder) into a `.lev`, the format Leviat
 **🔹 Analyze GGUF**
 Reads a `.gguf` (or safetensors) file's header without loading the model: architecture, parameter count, tensor types, the key settings (context length, layers, attention heads, experts) and what its tokenizer declares — the special tokens and whether it carries a chat template. Nothing is changed.
 
+<p align="center"><img src="screenshots/studio-analyze.png" width="900" alt="Analyze GGUF reading Qwen 2.5 Coder 7B's header: architecture, size, tensor types and metadata" /></p>
+
 **🔹 Tensor Scan**
 Lists every tensor in a model — shape, type, layer and role — with statistics (mean, spread, range, share of zeros) for the full-precision ones. Filter and sort the table, or export the scan as a JSON blueprint.
 
+<p align="center"><img src="screenshots/studio-scan.png" width="900" alt="Tensor Scan listing Qwen 2.5 Coder 7B's 339 tensors with their shapes, types and statistics" /></p>
+
 **🔹 Merge GGUF**
-Combines two fine-tunes of the same base model into a new `.gguf`. It reads any quantization (Q4_K, Q6_K, Q8_0, IQ, F16, BF16), merges at full precision and writes an unquantized F16 file — about 2 bytes per parameter, so a 7B model comes to roughly 15 GB. Quantize it afterwards, or convert it to `.lev`. **Check** confirms the models fit together (same architecture, tokenizer and tensor shapes) and shows the output size before anything is written; **Cancel** stops cleanly and leaves no half-written file.
+Model merging in a window: [mergekit](https://github.com/arcee-ai/mergekit)'s core methods — Linear, SLERP, TIES, DARE and Add difference (task arithmetic) — run straight on `.gguf` files. No Python, no YAML config, and no converting back to safetensors first. It combines two fine-tunes of the same base model into a new `.gguf`: it reads any quantization (Q4_K, Q6_K, Q8_0, IQ, F16, BF16), merges at full precision and writes an unquantized F16 file — about 2 bytes per parameter, so a 7B model comes to roughly 15 GB. Quantize it afterwards, or convert it to `.lev`. **Check** confirms the models fit together (same architecture, tokenizer and tensor shapes) and shows the output size before anything is written; **Cancel** stops cleanly and leaves no half-written file.
 - **Linear** and **SLERP** — blend A and B (*Weight of A*).
 - **TIES** and **DARE** — combine what each fine-tune changed relative to their shared **base model** (*Density* or *Drop*, and *Strength*). Without a base model, Model A is treated as the base.
 - **Add difference** — A + Strength × (B − base): carries what fine-tuning changed in B over to A. Needs the base model.
+
+<p align="center"><img src="screenshots/studio-merge.png" width="900" alt="Merge GGUF: Qwen 2.5 Coder 7B and cad0, its CAD fine-tune, checked for a TIES merge" /></p>
+<p align="center"><sub>Qwen 2.5 Coder 7B and cad0, a CAD fine-tune of the same model, checked for a TIES merge: they fit, and the F16 result would be about 14.2 GB. Nothing is written until you press Merge.</sub></p>
 
 **🔹 Join SafeTensors**
 Hugging Face splits big models into numbered pieces (`model-00001-of-00004.safetensors` …) plus an index file. This joins them into one `.safetensors` file holding every tensor, byte for byte. Nothing is converted, any data type works, and memory use stays small whatever the model's size. Pick a piece, the `.index.json` or the model's folder. **Check** lists the pieces, tensors and output size before anything is written, and the pieces are never touched.
 - **Output** — by default a folder of its own (`<model folder>-joined\model.safetensors`) with the config and tokenizer files copied beside it, ready to load or convert. Keep it out of the pieces' folder: llama.cpp's converter reads the pieces listed in the index while that file is there, and every `model*.safetensors` in the folder when it isn't.
 - **Read back** (on by default) — reads the joined file back and checks every tensor against its piece.
 
+<p align="center"><img src="screenshots/studio-join.png" width="900" alt="Join SafeTensors checking a two-piece Hugging Face download before joining it" /></p>
+
 **🔹 Strip Metadata**
 Lists the keys that record where a model came from — source and repository links, base models, datasets, author, licence — and writes a copy of the `.gguf` without the ones you tick. The tensors are copied byte for byte. Licence and author start unticked: keep them if you share the file. (A `.gguf` cannot phone home; these keys are labels, not tracking.)
+
+<p align="center"><img src="screenshots/studio-strip.png" width="900" alt="Strip Metadata listing the provenance keys a GGUF carries" /></p>
 
 **🔹 Sampling Defaults**
 Bakes default sampling settings — temperature, top-p, top-k, min-p and repeat penalty — into a copy of a `.gguf` as llama.cpp's own `general.sampling.*` keys. They travel with the file: llama.cpp uses them whenever you don't pass the flag yourself, while other apps may ignore them, and Leviathan's own chat uses its Settings. Four presets (Creative, Balanced, Coherent, Code-Focused), and you can save your own.
 
+<p align="center"><img src="screenshots/studio-sampling.png" width="900" alt="Sampling Defaults with the Code-Focused preset applied, ready to bake into a GGUF" /></p>
+
 **🔹 Absorb → ANI**
 Absorbs a model's knowledge into a routable text bank. Pick a model, and it works through a broad sweep of questions, keeping each answer *only* if the model is genuinely confident of it (and dropping honest "I don't know" replies). What survives folds into an ANI knowledge bank you can then use with any model — no retraining, and no multi-gigabyte weight file kept, just text. It runs one pass on the GPU, so it takes a while; a strong model yields rich knowledge, a tiny one yields little. This is the working way to keep a model's knowledge before you retire it.
 
-Two more ways to fill a bank sit in the same tab, both for **code** — where knowledge has to actually *run* to be worth keeping, so instead of trusting the model's confidence, every function is **compiled and run before it is kept**:
+Three more ways to fill a bank sit in the same tab, all for **code** — where knowledge has to actually *run* to be worth keeping, so instead of trusting the model's confidence, the code itself is checked before it is kept:
+- **💻 Code only — a dataset or source file** — a code dataset (JSON, JSONL or Parquet: the instruction and code fields are found for you, so any Hugging Face code set works) or a single source file (`.py`, `.js`, `.ts`, `.java`, `.c`, `.cpp`, `.go`, `.rs` and more), syntax-checked into a bank and re-verified every time it is used. Prose — documents, audio, chat logs — is refused, with the reason shown beside the button: ANI can quote prose but never fact-check it.
 - **📘 Absorb a code cookbook** — point it at a file of worked functions (`.py`, `.md`, `.txt`). Each function is extracted, compiled and smoke-run; only the ones that genuinely work fold into a code bank, one runnable pattern each. Nothing broken is kept.
 - **⚙ Generate a code cookbook** — hand a *coder* model a topic (say "string, list and dict utilities") and it writes the cookbook itself, as a task: it plans the functions, writes each one, and Leviathan compiles and runs every one — repairing from the error and retrying once if it fails — so the bank fills with functions that are correct by construction. A strong coder builds the library; a small model then borrows those patterns. It is how a lightweight model can code well above its own weight — it fetches a verified pattern instead of guessing one.
+
+<p align="center"><img src="screenshots/studio-absorb.png" width="900" alt="Absorb → ANI: the code-only card and the card that drains a model's knowledge" /></p>
 
 **🔹 ANI Voice**
 How ANI *sounds* — delivery only. This sets the tone ANI's answers are wrapped in; it never changes what ANI knows or says, only how it says it — the facts are identical in every setting. (It replaces the old "Personality → .fqm" builder: a `.fqm` is a *model's own memory*, and *how a model comes across* is ANI's job — kept separate, and kept clean.)
 - **ANI's voice — your call.** Three registers: **Auto** (match your voice — it learns how you talk, live as you chat and from logs you give it), **Warm** (always-friendly framing), or **Cold** (pure and sharp — the default).
 - **Learn my voice from chat logs.** Point it at your saved chat logs (`.txt`, `.md`, `.json`, `.log`). ANI reads **only your turns** — never the model's, never pasted code — and measures your *register*: your rhythm, how you emphasise, the tells you lean on. It is **gated** — a thin, spammy or incoherent log is rejected rather than learned from, so a poisoned log can't skew how ANI sounds and your existing voice is kept. And the log is read for register **only**: none of its text is ever written into a knowledge bank, so this can never pollute or bloat the vault.
 - **Current learned voice.** Shows the measured profile — how emphatic it is, how often it trails off, its sentence rhythm, the cues it leans on — so you can see exactly what was learnt. Your learned voice is yours and local; nothing leaves.
+
+<p align="center"><img src="screenshots/studio-voice.png" width="900" alt="ANI Voice: the Auto, Warm and Cold registers, and learning your voice from chat logs" /></p>
 
 **🔹 Inspect .fqm**
 Look inside a model's memory. A `.fqm` is what Leviathan saves so a model can pick up where you left off; this tab shows everything in one without changing it. Your memory files are listed; **Open another file…** takes one from anywhere.
@@ -255,6 +273,8 @@ Look inside a model's memory. A `.fqm` is what Leviathan saves so a model can pi
 - **The header** — every field in plain words, and the text exactly as stored.
 - **The numbers** — every block, what it holds, and a picture of it. **Save this block as .npy** hands you the numbers to check with your own tools.
 - **Read it back** — with the model that made it, the recent part of the memory turns back into the words it came from. A model's first layer computes each entry from its token alone, so every entry matches exactly one token of the model's vocabulary. It runs on the CPU in a few seconds, and it also proves which model a memory belongs to: a different model matches nothing.
+
+<p align="center"><img src="screenshots/studio-fqm.png" width="900" alt="Inspect .fqm opening a memory file: what it is, and every byte accounted for" /></p>
 
 A `.fqm` holds no text, but it is made from your conversation: anyone with the same model can read its recent part back. Keep it, and share it, the way you would the chat itself.
 
