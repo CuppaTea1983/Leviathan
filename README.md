@@ -35,7 +35,7 @@ Every picture on this page is the real app, driven by a real model on one RTX 40
 - 🔷 [The tabs](#the-tabs)
 - 🔷 [Chat](#chat) · 🔷 [Models](#models) · 🔷 [Studio](#studio) · 🔷 [Cores](#cores) · 🔷 [Memory Vault](#memory-vault) · 🔷 [Traits](#traits) · 🔷 [Inline Studio](#inline-studio) · 🔷 [Graph](#graph) · 🔷 [Planner](#planner) · 🔷 [Fabricator](#fabricator) · 🔷 [Settings](#settings)
 - 🔷 [The systems](#the-systems)
-- 🔶 [Persistent memory](#persistent-memory) · 🔶 [Knowledge routing](#knowledge-routing) · 🔶 [Reasoning layer](#reasoning-layer) · 🔶  [Forensic Grid](#forensic-grid) · 🔶 [Surface Sight](#surface-sight) · 🔶 [Recycling cloud answers](#recycling-cloud-answers) · 🔶 [Episodic memory](#episodic-memory) · 🔶 [Second-opinion fact-check](#second-opinion-fact-check) · 🔶 [Any model, described by itself](#any-model-described-by-itself)
+- 🔶 [Persistent memory](#persistent-memory) · 🔶 [Knowledge routing](#knowledge-routing) · 🔶 [Reasoning layer](#reasoning-layer) · 🔶  [Forensic Grid](#forensic-grid) · 🔶 [Surface Sight](#surface-sight) · 🔶 [Recycling cloud answers](#recycling-cloud-answers) · 🔶 [Episodic memory](#episodic-memory) · 🔶 [Second-opinion fact-check](#second-opinion-fact-check) · 🔶 [Any model, described by itself](#any-model-described-by-itself) · 🔶 [Faster replies](#faster-replies)
 - 🔴 [The security membrane](#the-security-membrane)
 - 🟣 [What ANI is — and why it matters](#what-ani-is-and-why-it-matters) — **the thesis, in plain words**
 - 🔷 [Using Leviathan from other programs](#using-leviathan-from-other-programs)
@@ -491,6 +491,8 @@ Here is everything you will find, top to bottom:
 
 **🔹 Context length** — the model's **single-pass window**: how big one prompt can be (system prompt + any project files + any ANI reference + your message) and the range its positions cover. From **2048** up to **Max** — the model's own full trained window, costing more VRAM the higher you go, bounded by your card and not by us. This is *not* long-term memory: the `.fqm` and episodic memory carry a conversation across sessions at any window (the `.fqm` keeps the newest part exact and folds the rest into ever-coarser summaries). So raise it only when a single prompt is genuinely large, such as Inline Studio with ANI injection. It was silently pinned at 2048 before; now it is yours. Takes effect the next time a model is loaded.
 
+**🔹 Faster replies** — lets a small *helper model* write ahead while your model checks its guesses several at a time, so replies arrive sooner and say exactly what they would have said anyway. Switch on **Use a helper model to speed up replies** and pick the helper: the list shows the small models in your model folders, or **Browse…** to one. It must come from the same family as the model you chat with — for any Qwen 2.5 model, that's Qwen 2.5 Coder 0.5B. The line under the switch tells you, for each loaded model, whether the helper is working for it, and if not, why. Off by default. [Below].
+
 **🔹 Memory storage (.fqm)** — how a model's persistent memory is written to disk; the mechanism is covered in full under [Persistent memory]. Choose the storage stage — **half-size** (float16, the default: about half the size, at the standard KV precision), **lossless**, or an experimental **Shannon** stage — and set the **compaction window**: how many recent tokens stay exact before the cascade folds the older ones into its summary levels, so a long chat's `.fqm` grows a level at a time instead of with every turn.
 
 **🔹 Appearance** — your own colour for Leviathan's frame. Pick it with **R / G / B sliders** or a preset, see it in a preview, and **Apply** repaints the window on the spot; it's remembered next time. Only the frame changes — the window, panels, fields and borders. Buttons, the accent colour and your work (graphs, 3D views, code) keep their own colours, and every panel keeps exactly the brightness it has now, so text stays just as readable whatever colour you choose. **Deep sea** puts the original look back. A **Window opacity** slider makes the whole window see-through, down to half.
@@ -597,6 +599,8 @@ What lands here goes into the same shared space and is answerable, by any model 
 
 A bigger model can use a *lower* mode safely — it just under-uses the room, which is why Light is marked for the 7B alone. A *smaller* model on a mode above its marker would go wrong fast, so Leviathan doesn't let it: **every model is locked to the depths its size can carry** — a 7B never goes past Light and a 1B runs Off, whatever the selector says, and the status bar tells you when a pick is held back. (The size comes from the model's name, its file name, or failing both its own weights.) The 1B/7B/14B rows are measured on real models; 32B and 70B follow the same doubling pattern and are the recommended starting points rather than tested results — tune to taste. **Auto**, the default, is safe on any size for the same reason: a hard question can pull a 70B all the way to Max, while the same question gives a 7B Light.
 
+**In a chat between models, each model is capped on its own.** Pick Light with a 7B and a 1B loaded together and the 7B gets Light while the 1B runs without a scaffold. The chat opens with a line saying exactly what each model gets, and hovering the 🧠 selector shows the same for whatever is loaded. (The Knowledge Route doesn't use the selector at all: its asker and answerer get the Route's own prompts.)
+
 **It feeds the routing, too.** What the reasoning layer works out a question is *about* also nudges [knowledge routing] — a coding question leans the router a little further toward your coding banks — but only ever as a gentle reinforcement added on top, never overriding where the knowledge actually comes from.
 
 **Where the reasoning comes from.** The library is distilled from real traces of a frontier model reasoning through tens of thousands of problems — coding, mathematics, the sciences, medicine, law and more. It is *text* — worked examples — not anyone's weights, and none of it changes what your model *is*. It only changes how your model is asked to think. It is fed only from **vetted** sources — licensed reasoning traces, and code examples that were compiled and run before being kept — never scraped from your own chats, so a stray conversation can never quietly reshape how every model reasons.
@@ -674,6 +678,54 @@ No internet, no outside reference: it only asks the model to be consistent with 
 ### 🔶 Any model, described by itself
 
 Leviathan ships knowing a handful of models in detail. Load one it has never seen — your own, converted yourself — and rather than guess at its shape, it reads the model's own interior at load time and writes down what it finds: how many layers there are, how attention and the feed-forward are built, where every tensor goes. That description is saved beside your data, so the second time you load that model the reading is already done, and you are left with a plain, honest record of exactly how Leviathan is treating it. Change the model and the description is rebuilt to match.
+
+---
+
+<a name="faster-replies"></a>
+### 🔶 Faster replies — a helper model
+
+*Same answers, sooner. If you've met the term before, this is* speculative decoding.
+
+**The problem.** A model writes its reply one token at a time. (A token is a word or a piece of one; "photosynthesis" takes a few.) For every single token, your graphics card reads very nearly the *entire model* out of its memory: about 7 GB for a 7B model at Q8_0, start to finish, for one token. That reading is the speed limit. The card's maths units spend most of their time waiting on it, which is why a reply streams out at the same steady pace whether the next word is "the" or "photosynthesis".
+
+**What Leviathan does instead.** It pairs your model with a *helper*: a much smaller model from the same family, about a twelfth of the size. The helper has so little to read that it can guess the next few tokens in a fraction of the time. Your model then checks all of those guesses in a single pass, and checking four tokens costs it not much more than writing one, because the expensive part (reading the model out of memory) happens once either way.
+
+Your model keeps every guess it agrees with, up to the first one it doesn't. There it writes its own token instead, and the helper carries on guessing from that point. A good run of guesses gives you four tokens for little more than the price of one. A wrong guess costs a moment and nothing else, because your model was going to write that token anyway.
+
+Think of an apprentice and a master. The apprentice sketches the next few strokes; the master glances over them, keeps what's right and redraws the first one that isn't. The master never has to redraw what the apprentice got right, but every line on the page is one the master approved.
+
+**Why your answers don't change.** The helper only ever suggests. Your model still decides every token, so what you read is your model's reply, not the helper's.
+
+- **At temperature 0** (no randomness), the reply comes out the same, token for token, with the switch on or off. In our tests it was identical every time, in every format below. Strictly speaking, checking several tokens at once adds the numbers up in a slightly different order, so a near-perfect tie between two words could in principle tip the other way, just as it can between two different graphics cards. We haven't seen it happen.
+- **With creativity turned up** (temperature above 0; Leviathan's default is 0.7), your model's reply is a fresh random draw every time anyway. Leviathan keeps the odds *exactly* as your model would set them: each guess is kept with precisely the chance your model gives it, and when one is turned down, your model draws its own token from the chances that are left. You get the same kind of answer, with the same variety, sooner. This is the standard, proven method, published in 2023 by Yaniv Leviathan, Matan Kalman and Yossi Matias at Google and, independently, by Charlie Chen and colleagues at DeepMind. (The surname is a coincidence. Honestly.)
+- **Your memory stays clean.** With persistent memory on, every guess your model turns down is taken back out of its `.fqm` straight away, so the memory holds exactly the reply you were given and nothing that was rejected.
+
+**What you need.**
+
+- **A helper from the same family as your model.** The two compare guesses token by token, so they must split text into tokens in exactly the same way: the same *tokenizer*, the dictionary that turns text into tokens. In practice that means the same family and generation:
+  - for any **Qwen 2.5** model (any size, Coder or not): **Qwen 2.5 Coder 0.5B**, 0.6 GB at Q8_0, the helper we measured with;
+  - for **Llama 3.1, 3.2 and 3.3** models: **Llama 3.2 1B** is the usual choice.
+
+  Leviathan checks that the two match before it uses them, and tells you plainly if they don't. It also turns down a helper that isn't much smaller than your model (more than 40% of its size), because then it couldn't be faster.
+- **About 1 GB of spare graphics memory** for the helper: 0.9 GB with a 4K context window, up to 1.6 GB at 32K, because the helper keeps its own copy of the conversation so far.
+- **Settings → Faster replies:** switch on **Use a helper model to speed up replies** and choose the helper.
+
+**How much faster.** That depends on how predictable the reply is (the helper guesses code, lists and plain explanations well, freewheeling fiction less well) and on your graphics card. Measured on our RTX 4080 with Qwen 2.5 Coder 7B and the 0.5B helper, on six everyday requests (a Python class, a shell script, three explanations and a haiku). At temperature 0, every reply was identical to the one written without the helper:
+
+| Your model's file | Temperature 0.7 (the default) | Temperature 0 |
+|---|---|---|
+| Q8_0 | 70 → 112 tokens a second (**1.59×**) | 72 → 123 (**1.71×**) |
+| Q6_K | 88 → 117 (**1.34×**) | 91 → 136 (**1.50×**) |
+| Q5_K_M | 94 → 120 (**1.27×**) | 97 → 128 (**1.32×**) |
+| Q4_K_M | 100 → 129 (**1.28×**) | 103 → 143 (**1.38×**) |
+| Q3_K_M | 81 → 118 (**1.45×**) | 84 → 124 (**1.48×**) |
+| IQ4_XS | 77 → 111 (**1.45×**) | 81 → 126 (**1.55×**) |
+
+Two things set the size of the win. The more your model has to read per token, the more waiting the helper saves, which is why a Q8_0 gains most. And Q3_K_M and IQ4_XS gain more than you'd expect from their size, because unpacking their weights is slow work in itself, and checking four tokens at once shares that work out too. Persistent memory doesn't get in the way: with it on, a Q8_0 went from 64 to 105 tokens a second (**1.65×**) at the default temperature, and a Q4_K_M from 83 to 113 (**1.36×**). F16 models work too: Qwen 2.5 Coder 1.5B in F16 replied **1.20×** faster with the same helper. Smaller models gain less, because the helper's own time is a bigger share of theirs.
+
+**The hard case is free creative writing.** Stories and poems at a high temperature are much harder to guess: the helper's guesses are kept about a third of the time there, against nearly three-quarters for everyday requests. So the gain shrinks, to 1.11–1.16× on a Q8_0 and about even (0.97–1.02×) on a Q4_K_M. It stays about even rather than slower because Leviathan keeps an eye on it: every reply opens with a few tokens your model writes alone, to time a normal step, and whenever guessing turns out slower than that, your model writes on alone for a while before the helper tries again. Your own numbers will differ with your card.
+
+**When it isn't used.** Some models can't yet have their guesses checked several at a time, so the helper isn't used for them at all: mixtures of experts (DeepSeek V2 Lite, for one), models with compressed attention (MLA, also DeepSeek's) and hybrid recurrent models (Qwen 3.5's mixed layers). The same goes for the rarer file types — Q2_K, Q4_0, Q4_1, Q5_0, Q5_1, the IQ1–IQ3 family and BF16 — whose guesses Leviathan can check, but not yet quickly enough to come out ahead, and for small models that share one table between reading and writing text (most models of 3B and under) unless that table is stored in F16, for the same reason. In every one of these cases the line under the switch says so, naming the reason, and your model runs exactly as it would with the switch off. In a chat between several models, each one that shares the helper's family gets a helper of its own (another gigabyte or so apiece), and the rest carry on exactly as before.
 
 ---
 
