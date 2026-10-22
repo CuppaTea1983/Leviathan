@@ -82,9 +82,9 @@ Everything after that is optional. Leviathan is fully usable knowing only those 
 <a name="the-two-file-types"></a>
 ## 🔷 The two file types
 
-This is the part most people find confusing, and it is worth five minutes because everything else in Leviathan is built on it. There are two kinds of model file, they do two completely different jobs, and they are not alternatives to one another. (There is a third thing — a **knowledge bank** — but it is not a model file at all; it is text, and it gets its own short section below.)
+This is the part most people find confusing, and it is worth five minutes because everything else in Leviathan is built on it. There are two kinds of file — the model, and its memory — they do two completely different jobs, and they are not alternatives to one another. (There is a third thing — a **knowledge bank** — but it belongs to no one model; it is text, and it gets its own short section below.)
 
-A rough analogy, if it helps: if the model is a **person**, then `.lev` is their brain and `.fqm` is their memory of your conversations. Knowledge banks are the books on their shelf — text they can reach for when a question calls for it, not part of the brain itself.
+A rough analogy, if it helps: if the model is a **person**, then `.lev` is their brain and `.mem` is their memory of your conversations. Knowledge banks are the books on their shelf — text they can reach for when a question calls for it, not part of the brain itself.
 
 ---
 
@@ -100,21 +100,25 @@ A rough analogy, if it helps: if the model is a **person**, then `.lev` is their
 
 ---
 
-### 🔹 `.fqm` — the memory
+### 🔹 `.mem` — the memory
 
-**What it is:** what the model remembers, saved to disk.
+**What it is:** what the model remembers of your conversations, kept as plain text — one memory per model.
 
 **Why it exists:** normally, when you close a chat, everything is gone. Next time you open it, the model has never met you. It has no idea what you were working on, what you told it last week, or what you have already explained three times.
 
-A `.fqm` is that memory, written to a file. When you load the model again, the memory loads with it. The conversation genuinely continues.
+A `.mem` is that conversation, kept. When you load the model again, it reads back the newest part of what the two of you said before it answers, so the conversation genuinely continues.
 
-**How a `.fqm` comes into being — on its own, as you talk.** If a model has memory enabled, Leviathan saves a `.fqm` after the first exchange and then every fifth one, quietly, in the background. This is the running memory of *your* conversations with *this* model — it grows as you chat and loads back the next time you open the model. You do not have to do anything, and if it ever *cannot* save, it says so out loud rather than pretending it worked. It also refuses to save a turn that came out garbled, so one bad reply can never lodge itself in the memory permanently.
+**How it comes into being — on its own, as you talk.** Each exchange is written to the model's memory the moment the reply lands: your message and its answer, and nothing else — none of the instructions Leviathan wraps around a turn. You do not have to do anything. A reply that came out garbled (an error message, or the same few words over and over) is not kept, and neither is the message that led to it, so one bad turn can never lodge itself in the memory; a line repeated straight after itself is kept once.
 
-**The save is atomic.** A `.fqm` is written whole or not at all. The new memory is built in full, then swapped in for the old one in a single step the operating system guarantees cannot be interrupted part-way — so a crash, a power cut or a pulled plug mid-save leaves you with the *previous* good memory, never a torn or half-written file. Memory you can trust is memory that cannot corrupt itself, and this atomic write is the quiet mechanism that makes "it just remembers" safe to rely on rather than a thing you hope survived.
+**Two kinds of conversation, kept apart.** Each memory holds two banks. **PMB** is what passed between you and that model — just the two of you. **MPM** is its conversations with other models — a chat with two or more models, or a [Knowledge Route] — with you in it too when you join in, and every line keeps who said it. When you talk to a model alone it reads back its PMB; in a chat between models, each one reads back that conversation from its own side.
 
-**It compresses as it grows — and you decide how.** A conversation that ran for months would make a naive memory file swell without limit. A `.fqm` does not: it keeps your most recent exchanges exact and folds older ones into summaries that grow coarser with age — each level eight times coarser than the one above, over seven levels — so the file grows a level at a time, not with every turn, and nothing is let go until the deepest level fills. Reach is not recall, and we measured the difference: the summaries keep the drift of a conversation, not its specifics — a passage folded two levels down left no measurable trace, and facts pushed out of the exact window came back one time in ten from the `.fqm` alone, the same as no memory. Recent memory stays sharp; the facts you need kept for good belong to [episodic memory](#episodic-memory), which is text and doesn't fade. The whole thing is yours to tune in **Settings → Memory storage**: pick the storage stage — **half-size** (the default: a float16 store at the standard precision, roughly halving every file), **lossless**, or an experimental **Shannon** stage — and set, with a slider, how large the exact window is before the cascade folds the rest. This is a genuine compression system working under your hand, not a format that can only grow.
+**Text, never tokens.** Earlier versions kept a model's *internal working state* on disk instead (a `.fqm`: the numbers a model computes from your words, not the words). We measured what that cost on a 7B model: it held 2.5 GB of graphics memory, grew to 211 MB where the same conversation as text takes 39 KB, and its compressed older part gave back a fact one time in ten — no better than no memory at all. So memory is text now: it takes no graphics memory between turns, stays small on disk, and every word in it is readable — by you, in **Studio → Inspect memory**. Told ten facts in ten turns and asked after a restart, a 7B gave all ten back. Text has a cost too, paid in time: a full read-back (1,900 tokens on an 8K context) adds about 1.4 seconds before a 7B's reply starts on an RTX 4080, and the reply writes about a tenth slower (13.4 → 14.8 ms a token) — what any long prompt costs in Leviathan today. A short conversation costs next to nothing.
 
-**One per model.** The memory is named after the model and lives in your FQM Database folder. Two models loaded at once do not share it or bleed into each other — each wakes up with its own past and no one else's. (Making a model that *sounds like you*, or that already *knows your material*, is a separate and cleaner job: your register is ANI's to mirror — see [ANI Voice] — and your material lives in [knowledge banks], readable by any model, rather than baked into one model's memory.)
+**How much it reads back.** Before each reply the model is handed its newest turns, in the order they happened, up to a quarter of its context length (**Settings → Context length** sets that). Everything older stays in the memory, on disk and searchable. Picking an older thread back up by its subject is [episodic memory](#episodic-memory)'s job.
+
+**The save can't tear.** Each exchange is written as one transaction: a crash or a power cut mid-write leaves the memory as it was, never half-written.
+
+**One per model.** The memory is named after the model file and the name you gave it in **Models** — `<model>.<name>.mem`, in the `memory_banks` folder of your Leviathan data folder (**Settings → Memory** shows it). Rename the model and its memory goes with it. Two models loaded at once never read each other's memory — each wakes up with its own past and no one else's. Coming from an older version, a model's old conversation log is copied in the first time its memory opens — your lines and that model's, nothing another model wrote; an old `.fqm` is left where it is and no longer read. (Making a model that *sounds like you*, or that already *knows your material*, is a separate and cleaner job: your register is ANI's to mirror — see [ANI Voice] — and your material lives in [knowledge banks], readable by any model, rather than baked into one model's memory.)
 
 ---
 
@@ -146,7 +150,7 @@ Where you actually talk to the model.
 
 <p align="center"><img src="screenshots/chat.png" width="900" alt="A two-turn chat with Qwen 2.5 Coder 7B, with the Route panel on the right" /></p>
 
-Type, press Start or `Ctrl+Enter`, and the reply streams back as it is generated. You can interrupt mid-answer — including during the long pause at the start while the model reads a large prompt — and it stops immediately rather than finishing the paragraph first.
+Type and press **Enter** (**Shift+Enter** for a new line). While a local model is writing, the send button turns into a **■** — press it, or **Esc**, and the reply stops where it is: what it wrote so far is kept, shown and remembered, and the chat carries on. A stop pressed while the model is still reading a long prompt counts too; the reply then ends before its first word. A message you send while a reply is being written waits in the box and goes the moment that reply ends.
 
 Down by the input box sits a compact **🧠 depth selector** — **Off · Auto · Light · Medium · Heavy · Max**. This is where you set how hard the model is made to think before it answers, and it lives with the chat, not buried in Settings, so you can change it question by question. What each depth actually does is under [Reasoning layer].
 
@@ -185,13 +189,13 @@ Each connected model gets a row showing where it runs and its file or model name
 - **System Prompt** — the standing instructions the model follows in every reply. Leviathan fills in a sensible default; replace it with whatever you want the model to be.
 - **Temp** — how adventurous its wording is. Lower is steadier and more predictable, higher is looser and more varied.
 - **Reply length is no longer set here.** It used to be a per-model *Max Tokens* field; it is now a **Token budget** set once per surface in **Settings → Token budget** — a slider from 512 up to ∞ — so one setting governs every model on that surface instead of each one carrying its own. The dialog shows *Tokens: Settings → Token budget* as a reminder. (It still matters as much as it ever did: a model held to 512 gives you a paragraph or two; the same model at ∞ can write you a whole document — see [Settings].)
-- **Leech Feed Model** *(Leviathan models only)* — a second model to fall back on. When your local model hedges, gives a thin answer or clearly does not know, Leviathan asks the feed model the same question and absorbs its answer into your local model's memory, so next time it knows. It only ever asks models you have connected yourself. Leave it on *auto* to use the first hosted model in your list.
+- **Leech Feed Model** *(Leviathan models only)* — a second model to fall back on. When your local model hedges, gives a thin answer or clearly does not know, Leviathan asks the feed model the same question. Where the local answer can't be trusted — a calculation, an instruction it skipped, a one-line reply, a question back instead of an answer — you get the feed model's answer instead, and that is the reply your local model's memory keeps. It only ever asks models you have connected yourself. Leave it on *auto* to use the first hosted model in your list.
 
 **🔹 Route — Knowledge Route**
 
-*One model asks. One answers. The mind absorbs everything.*
+*One model asks. One answers. Both remember.*
 
-Pick a model to ask the questions and a model to answer them (the same model for both works; it debates itself), give it a topic, and set how many rounds to run. The two work through the subject back and forth while you do something else, and everything they establish is absorbed into a mind file. It is a way to have a model study a subject deliberately rather than waiting for it to come up in conversation.
+Pick a model to ask the questions and a model to answer them (the same model for both works; it debates itself), give it a topic, and set how many rounds to run. The two work through the subject back and forth while you do something else, and the whole exchange is kept in each model's memory, as a conversation between models ([MPM](#the-two-file-types)). It is a way to have a model study a subject deliberately rather than waiting for it to come up in conversation.
 
 Routes work only from what the two models already know. They do not browse the web.
 
@@ -271,24 +275,23 @@ Three more ways to fill a bank sit in the same tab, all for **code** — where k
 <p align="center"><img src="screenshots/studio-absorb.png" width="900" alt="Absorb → ANI: the code-only card and the card that drains a model's knowledge" /></p>
 
 **🔹 ANI Voice**
-How ANI *sounds* — delivery only. This sets the tone ANI's answers are wrapped in; it never changes what ANI knows or says, only how it says it — the facts are identical in every setting. (It replaces the old "Personality → .fqm" builder: a `.fqm` is a *model's own memory*, and *how a model comes across* is ANI's job — kept separate, and kept clean.)
+How ANI *sounds* — delivery only. This sets the tone ANI's answers are wrapped in; it never changes what ANI knows or says, only how it says it — the facts are identical in every setting. (It replaces the old "Personality → .fqm" builder, which built a model's personality by baking a chat log into its memory. A model's personality now comes from its own conversations, read back as text — see [The two file types] — and how *ANI* sounds is this tab's job: kept separate, and kept clean.)
 - **ANI's voice — your call.** Three registers: **Auto** (match your voice — it learns how you talk, live as you chat and from logs you give it), **Warm** (always-friendly framing), or **Cold** (pure and sharp — the default).
 - **Learn my voice from chat logs.** Point it at your saved chat logs (`.txt`, `.md`, `.json`, `.log`). ANI reads **only your turns** — never the model's, never pasted code — and measures your *register*: your rhythm, how you emphasise, the tells you lean on. It is **gated** — a thin, spammy or incoherent log is rejected rather than learned from, so a poisoned log can't skew how ANI sounds and your existing voice is kept. And the log is read for register **only**: none of its text is ever written into a knowledge bank, so this can never pollute or bloat the vault.
 - **Current learned voice.** Shows the measured profile — how emphatic it is, how often it trails off, its sentence rhythm, the cues it leans on — so you can see exactly what was learnt. Your learned voice is yours and local; nothing leaves.
 
 <p align="center"><img src="screenshots/studio-voice.png" width="900" alt="ANI Voice: the Auto, Warm and Cold registers, and learning your voice from chat logs" /></p>
 
-**🔹 Inspect .fqm**
-Look inside a model's memory. A `.fqm` is what Leviathan saves so a model can pick up where you left off; this tab shows everything in one without changing it. Your memory files are listed; **Open another file…** takes one from anywhere.
-- **What it is** — which model it belongs to, how many tokens it has read, how many it keeps exactly and how many older ones are summarised.
-- **Every byte accounted for** — a `.fqm` is a short tag, a plain-text (JSON) header and blocks of numbers, and their sizes add up to the file's size exactly, so nothing else can hide in it. Every block is unpacked and checked: it is all numbers, and nothing in it is ever run as code. Anything the format doesn't define is flagged.
-- **The header** — every field in plain words, and the text exactly as stored.
-- **The numbers** — every block, what it holds, and a picture of it. **Save this block as .npy** hands you the numbers to check with your own tools.
-- **Read it back** — with the model that made it, the recent part of the memory turns back into the words it came from. A model's first layer computes each entry from its token alone, so every entry matches exactly one token of the model's vocabulary. It runs on the CPU in a few seconds, and it also proves which model a memory belongs to: a different model matches nothing.
+**🔹 Inspect memory**
+Look inside a model's memory — every word of it, because it is text. Every model's memory is listed, with how many turns its PMB holds (you and it), how many lines its MPM holds (its conversations with other models) and when it was last used; **Open another file…** takes one from anywhere.
+- **What it is** — which model and name it belongs to, how many turns are yours and how many the model's, how many conversations with other models it has been in, and how many lines it brought over from an older version's log.
+- **What the model reads back** — what the model will be handed before your next message, laid out as you and the model: its newest turns, as many as fit the same budget it uses (a quarter of its context, counted with the model's own tokenizer while the model is loaded; otherwise estimated from the length of the text, and the model's own count can fit a turn more or less). Pick a conversation with other models to see that one from this model's side instead.
+- **Every line** — PMB or MPM, newest first, with who said it and when; select one to read it in full. **Search** finds lines by their words, best match first.
+- **Yours to change** — **Delete selected lines…**, **Clear this bank…** and **Export as text…** (all of it, as a plain text file you can read anywhere). The first two ask first, and nothing changes unless you say yes.
 
-<p align="center"><img src="screenshots/studio-fqm.png" width="900" alt="Inspect .fqm opening a memory file: what it is, and every byte accounted for" /></p>
+<p align="center"><img src="screenshots/studio-memory.png" width="900" alt="Inspect memory: a model's memory, what it reads back before your next message, and every line" /></p>
 
-A `.fqm` holds no text, but it is made from your conversation: anyone with the same model can read its recent part back. Keep it, and share it, the way you would the chat itself.
+A model's memory is your conversation, word for word. Keep it, and share it, the way you would the chat itself.
 
 ---
 
@@ -299,24 +302,26 @@ A `.fqm` holds no text, but it is made from your conversation: anyone with the s
 
 One panel per connected model, showing the state of that model's mind. It is the tab you open when you want to know whether the memory system is actually doing anything, rather than trusting that it is.
 
-- **Fractal Core** — whether this model has a memory file, where it is, how big, when it last saved, and how much it has taken in. If memory is not working for a model, this is where it shows as pending rather than active.
-- **Local Memory** — conversation history: total messages, how many sessions, the split between what you said and what it said, when it was last active.
+The list is split in two by a line. Above it, **PMB — model to user memory**: each model's memory of you. Below it, **MPM — model to model memory (includes you)**: each model's conversations with other models. Click a model in either half and its panel opens on that part of its memory first.
+
+- **PMB** — how many turns it holds, yours and the model's, when it started and was last used, how much text, how much of it the model reads back before its next reply, how many turns came over from an older version's log, and where the memory is kept. If a model has no memory yet, it says so.
+- **MPM** — how many conversations with other models it has been in, how many lines, how many are its own, the other models' and yours, when it was last used, and who each conversation was with.
 - **Trait Profile** — measured characteristics of how this model actually behaves, with its dominant trait named.
 - **Session Stats** — this session's message count, and the settings in force: temperature, maximum response length, context limit.
 
-Each model gets its own core. They do not pool and they do not leak into each other.
+Each model gets its own core. They do not pool, and no model reads another's memory.
 
 ---
 
 <a name="memory-vault"></a>
 ### 🔷 Memory Vault
 
-*Pure knowledge · No personality bleed.*
+*Each model's memory · lines of text.*
 
-The archive. Every memory file, model and knowledge file Leviathan can see, in one list, with totals across the whole collection — how many memories, how many models, how many tokens and parameters, how much disk.
+The archive. Every model's memory first — each counted in **lines of text**: how many lines it holds, how many are its PMB (you and it) and how many its MPM (its conversations with other models), when it was last used, and its size on disk. Click one for the detail, and **🧠 Read every line in Studio** opens it in [Inspect memory]. Below the memories, every model file Leviathan can see (`.lev` and `.gguf`), read from the file's own header: its architecture, exact parameter count, layers and size.
 
 - **📁 Add Folder** brings in a folder from anywhere on your machine. Your models do not have to live where Leviathan put them.
-- **🧹** cleans up files flagged as stale or broken.
+- **🧹** frees the memory the app itself is holding (caches, the scan); your files are not touched.
 - **Auto-backup** *(on by default)* — when on, absorbing knowledge also writes a `.jsonl` backup of your banks to the backup folder, so your distilled knowledge is never trapped in a single file. (Whether knowledge is *offered* to models is the **Knowledge routing** switch in **Settings → Knowledge routing (ANI)**; this toggle is purely about keeping backups.)
 
 **The right-hand panel on this tab** is the **🧠 Knowledge Banks** browser: the text knowledge banks Leviathan holds right now (the live banks and their `.jsonl` backups), which folders they are read from, and — click a bank — how many entries it holds with a sample of what is inside. You can point it at additional folders anywhere on your machine and it remembers them between sessions. It is the place to check what knowledge Leviathan can actually see.
@@ -490,15 +495,17 @@ Here is everything you will find, top to bottom:
 
 **🔹 Server for other programs** — lets a game engine, a script, or any other program on this machine use the models Leviathan runs, over a local HTTP endpoint (127.0.0.1:8080, OpenAI-compatible *and* Leviathan-native). Flip on to start, off to stop. [Using Leviathan from other programs].
 
-**🔹 Token budget** — how much a model may write in **one reply**, set per surface: **Chat**, **Inline Studio**, the **Graph** and the **Planner** — each a place a model actually writes. A slider from **512** up to **∞**. This is *reply* length, and it is separate from context length: a big context does not make replies longer, this slider does. ∞ is bounded only by the model's own context window — your hardware, not a built-in cap.
+**🔹 Token budget** — how much a model may write in **one reply**, set per surface: **Chat**, **Inline Studio**, the **Graph** and the **Planner** — each a place a model actually writes. A slider from **512** up to **∞**. This is *reply* length, and it is separate from context length: a big context does not make replies longer, this slider does. **∞ means no cap at all — not even the context window.** A reply that reaches the end of the window keeps going: your instructions and your question stay in view, the newest part of what the model has written stays with them, and so do the older lines it keeps going back to. For the last few words before the window fills, Leviathan notes where the model's attention goes, and each attention head keeps the earlier lines it was reading: a function defined at the top of a long file, a name the reply keeps using. The rest slides out, so the model never runs past the positions it was trained on and never slows down. Tested on a 7B with a 2,048-token window: a 6,000-token reply counted from 1 to 1,421 without missing a number across five slides, at full speed. Measured against the same 7B holding the whole reply at once, keeping those lines brought its next-word predictions 57 % closer on a long code file, 55 % closer on a long program it wrote itself and 48 % closer on this README, and 3 % closer on its own free prose. Models under about 2B parameters keep a quarter of those lines this way rather than half: on a 0.5B, half cost its own prose. What it can't keep is a detail the reply never looks back at, such as a number mentioned once at the start and not again: that slides out, as before. A reply that falls into repeating itself once it's past the window is stopped, and the **■** beside the chat box (or **Esc**) stops any reply part-way, keeping what it wrote.
 
-**🔹 Context length** — the model's **single-pass window**: how big one prompt can be (system prompt + any project files + any ANI reference + your message) and the range its positions cover. From **2048** up to **Max** — the model's own full trained window, costing more VRAM the higher you go, bounded by your card and not by us. This is *not* long-term memory: the `.fqm` and episodic memory carry a conversation across sessions at any window (the `.fqm` keeps the newest part exact and folds the rest into ever-coarser summaries). So raise it only when a single prompt is genuinely large, such as Inline Studio with ANI injection. It was silently pinned at 2048 before; now it is yours. Takes effect the next time a model is loaded.
+**🔹 Context length** — the model's **single-pass window**: how big one prompt can be (system prompt + any project files + any ANI reference + its memory + your message) and the range its positions cover. From **2048** up to **Max** — the model's own full trained window, costing more VRAM the higher you go, bounded by your card and not by us. A model's memory reads back into this window — its newest turns, up to a quarter of it — so a bigger window lets a model read back more of what you said, at the price of slower turns once a conversation fills it; everything older stays in its memory on disk, where episodic memory can find it. Raise it when a single prompt is genuinely large, such as Inline Studio with ANI, or for a longer read-back. It was silently pinned at 2048 before; now it is yours. Takes effect the next time a model is loaded.
 
 **🔹 Faster replies** — lets a small *helper model* write ahead while your model checks its guesses several at a time, so replies arrive sooner and say exactly what they would have said anyway. Switch on **Use a helper model to speed up replies** and pick the helper: the list shows the small models in your model folders, or **Browse…** to one. It must come from the same family as the model you chat with — for any Qwen 2.5 model, that's Qwen 2.5 Coder 0.5B. The line under the switch tells you, for each loaded model, whether the helper is working for it, and if not, why. Off by default. [Below].
 
-**🔹 Memory storage (.fqm)** — how a model's persistent memory is written to disk; the mechanism is covered in full under [Persistent memory]. Choose the storage stage — **half-size** (float16, the default: about half the size, at the standard KV precision), **lossless**, or an experimental **Shannon** stage — and set the **compaction window**: how many recent tokens stay exact before the cascade folds the older ones into its summary levels, so a long chat's `.fqm` grows a level at a time instead of with every turn.
+**🔹 Memory** — where each model's memory is kept, with **📂 Open folder** to go there and **🧠 Read it in Studio** to look inside; how it works is covered under [Persistent memory]. There is nothing to tune: memory is text, it is written as you chat, and how much a model reads back follows **Context length**.
 
 **🔹 Appearance** — your own colour for Leviathan's frame. Pick it with **R / G / B sliders** or a preset, see it in a preview, and **Apply** repaints the window on the spot; it's remembered next time. Only the frame changes — the window, panels, fields and borders. Buttons, the accent colour and your work (graphs, 3D views, code) keep their own colours, and every panel keeps exactly the brightness it has now, so text stays just as readable whatever colour you choose. **Deep sea** puts the original look back. A **Window opacity** slider makes the whole window see-through, down to half.
+
+**🔹 Chat text** — a font of your own for your messages and another for the replies, so the two read apart at a glance. Pick the **font**, **size** and **style** (regular, bold or italic) for each side, or start from a preset — **Clean**, **Book**, **Typewriter** or **Handwritten**. A preview shows the result as you go, the chat changes on the spot, and it's remembered next time. Code inside a message keeps a fixed-width font, so it still lines up. **As designed** puts the original font back. (The chat pictures in this README show replies in **Comic Sans MS**, size **15**, **italic**.)
 
 **🔹 This machine** — what Leviathan found: your graphics card, and the exact folder your data is being written to.
 
@@ -520,24 +527,26 @@ The tabs above are the surfaces — what you open, click and type into. These ar
 
 **The problem.** Every chat with a local model normally starts from nothing. Close the window and the model has never met you. The usual workaround is to paste a summary of yourself at the start of every conversation, which is tedious, eats your context window, and is a poor imitation of remembering.
 
-**What Leviathan does instead.** As the model reads your conversation, it builds an internal understanding of it. Leviathan writes that understanding to disk as a `.fqm` file and loads it back the next time the model starts. The model resumes rather than restarts.
+**What Leviathan does instead.** Everything you and a model say to each other is kept, as text, in that model's own memory. Before it answers, the model reads back its newest turns with you, in order, so it picks up where you left off. The model resumes rather than restarts. (How the memory is kept, and why as text rather than the model's internal state, is under [The two file types].)
 
 **What that means in practice:**
 
 - You do not re-introduce yourself.
-- Things you explained last week are still known this week.
-- Corrections stick. Tell it you prefer something done a certain way and it stays told.
-- The memory is not a transcript being re-read. It is the model's own representation, so it does not consume your context window the way pasting a summary does.
-- Long conversations keep their order. However long a chat runs, your latest turns stay the latest: when the model's position range would run out, the whole memory slides back along it instead of wrapping round on itself.
-- What it keeps is the *substance of the exchange* — your messages and its answers. The invisible scaffolding Leviathan wraps around each turn (the reasoning nudges, the safety checks, the context it assembles for that one reply) steers the answer and is then left out of the memory. Knowledge is kept; the machinery around it is not, so the memory stays lean and on-point instead of bloating with structure that carries no meaning.
+- What you said recently is there when you come back: the model reads back its newest turns before every reply, up to a quarter of its context length.
+- Older turns aren't lost. They stay in the memory, on disk, and [episodic memory](#episodic-memory) brings one back when your question's words match it.
+- It is your conversation, word for word: readable, searchable, and yours to delete or export in **Studio → Inspect memory**.
+- It costs a share of the context window — a quarter at most — and some time: with a full read-back a reply starts about 1.4 seconds later and writes about a tenth slower (a 7B on an RTX 4080). Nothing stays in graphics memory between turns.
+- What it keeps is the *substance of the exchange* — your messages and its answers. The invisible scaffolding Leviathan wraps around each turn (the reasoning nudges, the safety checks, the context it assembles for that one reply) steers the answer and is then left out of the memory. A reply that came out garbled isn't kept at all.
 
-**When it saves.** After your first exchange, then every fifth. No button. If it cannot save, it tells you — silence would be worse than a warning, because a memory system that quietly does nothing is indistinguishable from one that works. Each save is **atomic**: the new memory is written in full and swapped in as one uninterruptible step, so a crash or power cut mid-save leaves the previous good memory standing, never a corrupted file. The memory can grow, and it can fail to save, but it cannot tear.
+**Talking to several models.** A chat with two or more models, and a [Knowledge Route], go into each model's MPM, not its PMB: each one keeps that conversation from its own side, with every line marked by who said it, and reads it back when the same models talk again. Its PMB stays just you and it.
 
-**Where it lives.** One file per model in your FQM Database folder, named after the model. Deleting it resets that model to a blank slate. Copying it elsewhere backs up that mind.
+**When it saves.** Every exchange, the moment the reply lands. No button. Each one is written as a single transaction, so a crash or power cut mid-write leaves the memory as it was, never half-written.
 
-**Each tab keeps its own headspace.** The two tabs that put a model to work — [Chat] and [Inline Studio] — each hold their own working memory. Set a model coding a clock in Inline Studio, then switch to Chat and ask it for a story, and it starts the story fresh rather than dragging the coding task across. What carries over is the durable `.fqm` knowledge — what the model has actually learnt — not the half-finished job. So the model still remembers, it just does not haul one tab's work into another.
+**Where it lives.** One file per model — `<model>.<name>.mem` in the `memory_banks` folder of your Leviathan data folder (**Settings → Memory** opens it). Deleting it resets that model to a blank slate; copying it elsewhere backs up that memory. Rename a model in Models and its memory goes with it.
 
-**Checking it works.** [🧿 Cores] shows every model's memory status, size and last save time. If a model's core reads pending rather than active, memory is not running for it.
+**Each tab keeps its own headspace.** The model reads back its memory of you in [Chat]; [Inline Studio], the [Graph] and the [Planner] each keep their own working memory for the job in hand. Set a model coding a clock in Inline Studio, then switch to Chat and ask it for a story, and it starts the story fresh rather than dragging the coding task across — while still remembering your chats.
+
+**Checking it works.** [🧿 Cores] shows every model's memory: how many turns, when it was last used, how much it reads back. **Memory Vault** counts every model's lines, and **Studio → Inspect memory** shows every one.
 
 ---
 
@@ -656,7 +665,7 @@ It is careful about what it keeps. A near-duplicate of something already there i
 <a name="episodic-memory"></a>
 ### 🔶 Episodic memory
 
-A model in Leviathan remembers your conversations — and that memory is **its own**. Each model keeps a running episodic record of what *it* discussed with you, recalled across sessions, so you can pick a thread back up weeks later and it knows what you meant. It finds past turns by the words in your question, so "what's my sister called?" finds the turn where you said "my sister's name is…"; a question that shares no word with the old turn won't find it. Measured on a 7B model: ten facts planted, then pushed out of the `.fqm`'s exact window by later conversation, then asked after a restart. Episodic memory brought back all ten; the `.fqm` alone, one — the same as no memory at all.
+A model in Leviathan remembers your conversations — and that memory is **its own**. Each model keeps a running episodic record of what *it* discussed with you, recalled across sessions, so you can pick a thread back up weeks later and it knows what you meant. It finds past turns by the words in your question, so "what's my sister called?" finds the turn where you said "my sister's name is…"; a question that shares no word with the old turn won't find it. Measured on a 7B model: ten facts planted, then pushed out of the model's working memory by later conversation, then asked after a restart. Episodic memory brought back all ten. (The memory format Leviathan used before, the `.fqm`, brought back one on its own — the same as no memory at all, and one reason memory is kept as text now.)
 
 **Per model, by design.** A model recalls only its *own* past turns — never another model's. This matters more than it sounds: pooling chat memory across models is how you end up with a model answering in a voice, and with "memories", that were never its own — a split personality that reads as hallucination. So the memory is kept strictly per model, and it never folds into ANI's shared knowledge banks either. Your episodic history steers the model that lived it, and nothing else.
 
@@ -701,7 +710,7 @@ Think of an apprentice and a master. The apprentice sketches the next few stroke
 
 - **At temperature 0** (no randomness), the reply comes out the same, token for token, with the switch on or off. In our tests it was identical every time, in every format below. Strictly speaking, checking several tokens at once adds the numbers up in a slightly different order, so a near-perfect tie between two words could in principle tip the other way, just as it can between two different graphics cards. We haven't seen it happen.
 - **With creativity turned up** (temperature above 0; Leviathan's default is 0.7), your model's reply is a fresh random draw every time anyway. Leviathan keeps the odds *exactly* as your model would set them: each guess is kept with precisely the chance your model gives it, and when one is turned down, your model draws its own token from the chances that are left. You get the same kind of answer, with the same variety, sooner. This is the standard, proven method, published in 2023 by Yaniv Leviathan, Matan Kalman and Yossi Matias at Google and, independently, by Charlie Chen and colleagues at DeepMind. (The surname is a coincidence. Honestly.)
-- **Your memory stays clean.** With persistent memory on, every guess your model turns down is taken back out of its `.fqm` straight away, so the memory holds exactly the reply you were given and nothing that was rejected.
+- **Your memory stays clean.** A model's memory is written from the reply you were given, once it has landed, so a guess your model turned down never reaches it.
 
 **What you need.**
 
@@ -775,7 +784,7 @@ A language model, on its own, is frozen. It knows what it was trained on, and af
 - You feed it knowledge — your own code and datasets, a model drained before you retire it, an answer a cloud model gave you. All of it becomes plain text in one shared space, held on your machine.
 - When you ask a question, ANI finds the knowledge that fits — by *meaning*, not by matching words — and hands it to the model before it answers.
 - When the model reaches the edge of what it knows — where it would otherwise fill the gap with a confident guess — that gap can be caught, and answered from real knowledge instead of invented on the spot.
-- The corrected exchange is remembered in that model's own persistent memory. The next time, it already knows.
+- The corrected exchange is kept in that model's own memory, so it reads the corrected answer back the next time.
 - And the store tidies itself — merging duplicates, sharpening how things are filed, rejecting noise — so it gets *cleaner* as it grows, not messier.
 
 Learn, adapt, recall — a complete loop, running entirely on hardware you own. It is the same shape as how a person learns: not by rewiring the brain for every lesson, but by taking things in, being corrected, and remembering — over a whole lifetime, always another lesson to learn.
@@ -807,7 +816,7 @@ Turn it on in **Settings → Server for other programs** — one switch, no term
 
 **OpenAI-compatible.** It speaks the same API as OpenAI's chat endpoint, so anything already built to talk to an OpenAI-style server works by pointing it at `http://127.0.0.1:8080` instead. Most existing tools and libraries need nothing more than a changed URL.
 
-**Leviathan-native.** A richer set of endpoints for things the OpenAI API has no concept of: loading and unloading models on demand, saving memory to disk, querying the recall cache, and listing available knowledge banks. This is the one to use if you are writing something new and want the features that make Leviathan different.
+**Leviathan-native.** A richer set of endpoints for things the OpenAI API has no concept of: loading and unloading models on demand, cancelling a reply mid-answer, and listing available knowledge banks. (Over the bridge, your program keeps its own conversation and sends it with each request; Leviathan keeps no memory for it.) This is the one to use if you are writing something new and want the features that make Leviathan different.
 
 Both stream responses as they generate, and both can be interrupted mid-answer — which matters for a game, where a character being spoken over should stop talking immediately.
 
