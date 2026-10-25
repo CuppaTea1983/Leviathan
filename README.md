@@ -1,5 +1,3 @@
-# Soon to come.
-
 <img src="https://archive.org/download/leviathan-logo-github/leviathan%20logo%20github.jpg" width="1200" />
 
 <p align="center"><a href="#requirements"><img src="screenshots/badge-windows.svg" height="28" alt="Runs on Windows" /></a> <a href="#requirements"><img src="screenshots/badge-nvidia.svg" height="28" alt="Needs an NVIDIA graphics card: GTX 16 / RTX 20 or newer" /></a></p>
