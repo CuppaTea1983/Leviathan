@@ -1,6 +1,6 @@
 <img src="https://archive.org/download/leviathan-logo-github/leviathan%20logo%20github.jpg" width="1200" />
 
-<p align="center"><a href="#requirements"><img src="screenshots/badge-windows.svg" height="28" alt="Runs on Windows" /></a> <a href="#requirements"><img src="screenshots/badge-nvidia.svg" height="28" alt="Needs an NVIDIA graphics card: GTX 16 / RTX 20 or newer" /></a></p>
+<p align="center"><a href="#requirements"><img src="screenshots/badge-windows.svg" height="28" alt="Runs on Windows" /></a> <a href="#requirements"><img src="screenshots/badge-nvidia.svg" height="28" alt="Needs an NVIDIA graphics card: GTX 16 / RTX 20 or newer" /></a> <a href="#requirements"><img src="screenshots/vulkan-logo.png" height="28" alt="Vulkan: AMD and Intel graphics cards, coming in the next release" /></a><br /><sub>Vulkan, for AMD and Intel graphics cards: coming in the next release</sub></p>
 
 **Local AI models, running directly on your graphics card. No server, no cloud, no account, no subscription, no telemetry.**
 
@@ -55,6 +55,8 @@ That is the whole list. You do not need Python, the CUDA toolkit, Visual Studio,
 **How much VRAM do you need?** Enough to hold the model you want to run. A 7–8 billion parameter model at moderate quality fits comfortably in 8 GB. Larger models need more. Leviathan will tell you what it found and what it is using.
 
 **No NVIDIA card?** Leviathan can still act as a front-end for a model server you run elsewhere — see [Models]. You lose the GPU-native features, but the chat, memory and knowledge systems still work.
+
+**AMD and Intel graphics cards: coming in the next release.** Leviathan is gaining a second engine, built on Vulkan, so the same `.lev` models run on AMD and Intel cards. In testing it matches the NVIDIA engine token for token on all fifteen models compared, it runs on an AMD Radeon, and it can split one model across two graphics cards, so two cards together hold a model too big for either. Intel Arc cards are next to be tested. It is not in the 1.0.0 download yet.
 
 ---
 
@@ -189,7 +191,6 @@ Each connected model gets a row showing where it runs and its file or model name
 - **System Prompt** — the standing instructions the model follows in every reply. Leviathan fills in a warm default that tells the model who it is and whether it's talking with you alone or with other models too. Replace it with whatever you want the model to be, and your words are sent whole, exactly as you wrote them; clear the box to go back to the default.
 - **Temp** — how adventurous its wording is. Lower is steadier and more predictable, higher is looser and more varied. 0 always picks the likeliest word; 0.7 is the usual default; up to 2 for the wildest. A model file can carry its own default (set with Studio → **Sampling Defaults**), and Leviathan starts there.
 - **Reply length is no longer set here.** It used to be a per-model *Max Tokens* field; it is now a **Token budget** set once per surface in **Settings → Token budget** — a slider from 512 up to ∞ — so one setting governs every model on that surface instead of each one carrying its own. The dialog shows *Tokens: Settings → Token budget* as a reminder. (It still matters as much as it ever did: a model held to 512 gives you a paragraph or two; the same model at ∞ can write you a whole document — see [Settings].)
-- **Leech Feed Model** *(Leviathan models only)* — a second model to fall back on. When your local model hedges, gives a thin answer or clearly does not know, Leviathan asks the feed model the same question. Where the local answer can't be trusted — a calculation, an instruction it skipped, a one-line reply, a question back instead of an answer — you get the feed model's answer instead, and that is the reply your local model's memory keeps. It only ever asks models you have connected yourself. Leave it on *auto* to use the first hosted model in your list.
 
 **🔹 Route — Knowledge Route**
 
@@ -884,3 +885,5 @@ Licensed under **MIT License**.
 - **Huggingface:** https://huggingface.co/spaces/Omega-Dev/Leviathan
 
 All three are linked from **Settings → About** inside the app.
+
+<sub>Vulkan and the Vulkan logo are registered trademarks of the Khronos Group Inc.</sub>
