@@ -12,6 +12,8 @@ What makes it different from the other ways of running a model locally is what h
 
 > **Leviathan is the host. The model is the guest.**
 
+*Built with Claude Code by Michael Ricky Neal and Claude, Anthropic's AI, working together: Michael is the imagination, Claude the logic. Two sides of the same coin.*
+
 <a name="see-it-running"></a>
 ### 🔹 See it running
 
@@ -71,7 +73,7 @@ The first time you open Leviathan, a welcome card sits over the chat window with
 
 The three steps are:
 
-1. **Convert a model.** Take a `.gguf` model file — the standard format you will find on Hugging Face — and convert it in **Studio → Convert**. You get a `.lev` file. This is a one-time job per model.
+1. **Convert a model.** Take a `.gguf` model file — the standard format you will find on Hugging Face — and convert it in **Studio → Convert**. You get a `.shn5` file: the model, compressed without losing anything (or a `.lev`, if you pick that instead). This is a one-time job per model.
 2. **Load it.** In **Models**, add it as a Leviathan model. It goes straight onto your GPU. No server starts, nothing listens on a port.
 3. **Talk to it.** Type in the chat box and press Start.
 
@@ -84,7 +86,7 @@ Everything after that is optional. Leviathan is fully usable knowing only those 
 
 This is the part most people find confusing, and it is worth five minutes because everything else in Leviathan is built on it. There are two kinds of file — the model, and its memory — they do two completely different jobs, and they are not alternatives to one another. (There is a third thing — a **knowledge bank** — but it belongs to no one model; it is text, and it gets its own short section below.)
 
-A rough analogy, if it helps: if the model is a **person**, then `.lev` is their brain and `.mem` is their memory of your conversations. Knowledge banks are the books on their shelf — text they can reach for when a question calls for it, not part of the brain itself.
+A rough analogy, if it helps: if the model is a **person**, then `.lev` (or its compressed twin, `.shn5`) is their brain and `.mem` is their memory of your conversations. Knowledge banks are the books on their shelf — text they can reach for when a question calls for it, not part of the brain itself.
 
 ---
 
@@ -94,9 +96,22 @@ A rough analogy, if it helps: if the model is a **person**, then `.lev` is their
 
 **Why it exists:** a normal `.gguf` model file has to be unpacked and rearranged before the GPU can use it, every single time you load it. A `.lev` is already in the right shape, so it goes from disk to graphics card with no reshuffling in between. It loads faster and it is what every other Leviathan feature expects to find.
 
-**How you get one:** **Studio → Convert**. Point it at a `.gguf`, wait, get a `.lev`. Once per model, then never again.
+**How you get one:** **Studio → Convert** with the target set to `.lev` (the default is its compressed twin, [`.shn5`](#shn5), below). Point it at a `.gguf` or a safetensors model, wait, get a `.lev`. Once per model, then never again.
 
-**Do I have to?** To use Leviathan's GPU engine, yes. If a model is refused during conversion, that is deliberate — see [What Leviathan will not do]
+**Do I have to?** To use Leviathan's GPU engine, yes: a `.lev` or a `.shn5`. If a model is refused during conversion, that is deliberate — see [What Leviathan will not do]
+
+<a name="shn5"></a>
+### 🔹 `.shn5` — the same model, compressed
+
+**What it is:** the same model as a `.lev`, packed smaller. It is lossless: Leviathan running a `.shn5` gives exactly the same numbers as running the `.lev` of the same model, bit for bit, and every piece is checked as it unpacks, so a damaged file is refused instead of run.
+
+**How much smaller:** about **1.5×** for a model stored at full precision, F16 or BF16 (measured: 1.51× on BF16, 1.48× on F16). A quantised download (Q4_K_M, Q8_0, the IQ types…) stays the size it is: its numbers are already packed, so they are stored as they come. **Studio → Convert** shows each model's expected size before you start, so you can see which kind you have.
+
+**What it costs:** nothing you will notice. It unpacks on the graphics card as it loads, at about 110 GB/s on an RTX 4080; a 2 GB model loaded in 0.70 s, slightly faster than its `.lev` (0.77 s).
+
+**Mixtures of experts:** each expert is stored as its own block, ready for *expert streaming*: the experts wait in your computer's memory and only the ones a word needs come to the card, which lets a MoE model bigger than your graphics card run. The engine does this today; the switch for it in the app is still to come.
+
+**How you get one:** **Studio → Convert**, which makes a `.shn5` by default from any `.gguf` (safetensors models convert to `.lev`). Then **Models → 🗜 Add compressed model**.
 
 ---
 
@@ -168,6 +183,7 @@ Where models are connected, configured and saved.
 **Connecting a model**
 
 - **⚡ Leviathan** — a `.lev` file on your GPU. This is the main path and the one everything else is built around. Pick the file, give the model a name and a **Temperature** (it starts at the model file's own default when the file carries one, otherwise 0.7).
+- **🗜 Compressed** — the same for a [`.shn5`](#shn5): the same engine and the same dialog, which says what the file is.
 - **+ Ollama** — a model served by a local Ollama install. The **llama3 / mistral / phi3 / gemma2** quick buttons are one-click shortcuts for these.
 - **+ API Model** — any OpenAI-compatible endpoint, local or remote.
 - **🌐 Grok** — xAI's hosted model. Paste your xAI API key and pick the model; the current price per million tokens is shown next to it so you are not choosing blind.
@@ -187,7 +203,7 @@ Each connected model gets a row showing where it runs and its file or model name
 
 **Double-click a model** to open its settings:
 
-- **Display Name / Model Name / Endpoint** — what it is called, which model it is, and where it lives (a file path for a `.lev`, a URL for a server).
+- **Display Name / Model Name / Endpoint** — what it is called, which model it is, and where it lives (a file path for a `.lev` or `.shn5`, a URL for a server).
 - **System Prompt** — the standing instructions the model follows in every reply. Leviathan fills in a warm default that tells the model who it is and whether it's talking with you alone or with other models too. Replace it with whatever you want the model to be, and your words are sent whole, exactly as you wrote them; clear the box to go back to the default.
 - **Temp** — how adventurous its wording is. Lower is steadier and more predictable, higher is looser and more varied. 0 always picks the likeliest word; 0.7 is the usual default; up to 2 for the wildest. A model file can carry its own default (set with Studio → **Sampling Defaults**), and Leviathan starts there.
 - **Reply length is no longer set here.** It used to be a per-model *Max Tokens* field; it is now a **Token budget** set once per surface in **Settings → Token budget** — a slider from 512 up to ∞ — so one setting governs every model on that surface instead of each one carrying its own. The dialog shows *Tokens: Settings → Token budget* as a reminder. (It still matters as much as it ever did: a model held to 512 gives you a paragraph or two; the same model at ∞ can write you a whole document — see [Settings].)
@@ -209,12 +225,13 @@ Routes work only from what the two models already know. They do not browse the w
 <a name="studio"></a>
 ### 🔷 Studio
 
-<p align="center"><img src="screenshots/studio-convert.png" width="900" alt="Studio's Convert to .lev tool listing a GGUF ready to convert" /></p>
+<p align="center"><img src="screenshots/studio-convert.png" width="900" alt="Studio's Convert tool listing an F16 GGUF, ready to become a .shn5 of about 1.39 GB, a third smaller" /></p>
 
 Where you build the things Leviathan runs on. Nearly every control has a sensible default; the notes below tell you which ones are worth touching and which to leave alone.
 
-**🔹 Convert → .lev**
-Turns a `.gguf` (or a safetensors model folder) into a `.lev`, the format Leviathan actually runs on. The first thing you will use, and a one-time job per model. If a model is not supported, it is refused here — with an explanation of exactly which parts Leviathan does not understand — *before* the multi-gigabyte conversion starts, not after.
+**🔹 Convert → .shn5 / .lev**
+Turns a `.gguf` into a [`.shn5`](#shn5) (the default) or a `.lev`, the forms Leviathan actually runs on; a safetensors model folder converts to `.lev`. The first thing you will use, and a one-time job per model. If a model is not supported, it is refused here — with an explanation of exactly which parts Leviathan does not understand — *before* the multi-gigabyte conversion starts, not after.
+- **Target** — `.shn5` or `.lev`. With `.shn5` selected, each model's row shows the file it will make: *≈4.36 GB (−32 %)* for a 6.4 GB F16 model, or *same size (quantised)* for an already-packed one, so you know before you start.
 - **Model list** — every model Leviathan found, with buttons to select **All**, **None**, or just the **Unconverted** ones. Tick what you want and convert in a batch.
 - **Q8_0 mode** — how eight-bit models are laid out. **Split (default)** is the safe choice and what you want almost always. *Shannon* and *Tensor Core F16* are alternative layouts for particular cards; leave it on Split unless you have a specific reason. (Applies to `.gguf` only — safetensors always convert as raw F16.)
 - **Which downloads stay compact** — all of the usual ones. Leviathan computes directly on Q2_K, Q3_K, Q4_K, Q5_K, Q6_K, Q8_0, Q4_0, Q4_1, Q5_0, Q5_1, every IQ type (IQ1_S, IQ1_M, IQ2_XXS, IQ2_XS, IQ2_S, IQ3_XXS, IQ3_S, IQ4_NL, IQ4_XS), F16, BF16 and F32, so a `.lev` is the size of the `.gguf` — the `_K_M` / `_K_S` / `_K_L` mixes, the imatrix "IQ" files and MoE models included. (For scale: a 32B model at IQ3_XXS is about a 13 GB file.) The rare leftovers (ternary TQ1_0/TQ2_0, MXFP4) are turned into F16; the converter says so and says how much bigger the file got.
@@ -230,7 +247,7 @@ Lists every tensor in a model — shape, type, layer and role — with statistic
 <p align="center"><img src="screenshots/studio-scan.png" width="900" alt="Tensor Scan listing Qwen 2.5 Coder 7B's 339 tensors with their shapes, types and statistics" /></p>
 
 **🔹 Merge GGUF**
-Model merging in a window: [mergekit](https://github.com/arcee-ai/mergekit)'s core methods — Linear, SLERP, TIES, DARE and Add difference (task arithmetic) — run straight on `.gguf` files. No Python, no YAML config, and no converting back to safetensors first. It combines two to four fine-tunes of the same base model (**+ Add model** for a third and fourth) into a new `.gguf`: it reads any quantization (Q4_K, Q6_K, Q8_0, IQ, F16, BF16), merges at full precision and writes an unquantized F16 file — about 2 bytes per parameter, so a 7B model comes to roughly 15 GB. Quantize it afterwards, or convert it to `.lev`. **Check** confirms the models fit together (same architecture, tokenizer and tensor shapes) and shows the output size before anything is written; **Cancel** stops cleanly and leaves no half-written file.
+Model merging in a window: [mergekit](https://github.com/arcee-ai/mergekit)'s core methods — Linear, SLERP, TIES, DARE and Add difference (task arithmetic) — run straight on `.gguf` files. No Python, no YAML config, and no converting back to safetensors first. It combines two to four fine-tunes of the same base model (**+ Add model** for a third and fourth) into a new `.gguf`: it reads any quantization (Q4_K, Q6_K, Q8_0, IQ, F16, BF16), merges at full precision and writes an unquantized F16 file — about 2 bytes per parameter, so a 7B model comes to roughly 15 GB. Quantize it afterwards, or convert it to `.shn5` (about 10 GB, losing nothing) or `.lev`. **Check** confirms the models fit together (same architecture, tokenizer and tensor shapes) and shows the output size before anything is written; **Cancel** stops cleanly and leaves no half-written file.
 - **Linear** — blend the models (*Weight of A* with two; a *Weight* per model with three or four, used as shares).
 - **SLERP** — blend two models along the arc between them (*Weight of A*). Two models only: add a third and it switches to Linear and says so.
 - **TIES** and **DARE** — combine what each fine-tune changed relative to their shared **base model** (*Density* or *Drop*, and *Strength*; with three or four, each model's *Weight* counts in the vote and the mean). Without a base model, Model A is treated as the base.
@@ -261,7 +278,7 @@ Lists the keys that record where a model came from — source and repository lin
 <p align="center"><img src="screenshots/studio-strip.png" width="900" alt="Strip Metadata listing the provenance keys a GGUF carries" /></p>
 
 **🔹 Sampling Defaults**
-Bakes default sampling settings — temperature, top-p, top-k, min-p and repeat penalty — into a copy of a `.gguf` as llama.cpp's own `general.sampling.*` keys. They travel with the file: llama.cpp uses them whenever you don't pass the flag yourself, while other apps may ignore them. Leviathan takes the temperature as the starting value when you add the model (it's carried into a `.lev` when you convert), and you can change it any time in the model's settings. Four presets (Creative, Balanced, Coherent, Code-Focused), and you can save your own.
+Bakes default sampling settings — temperature, top-p, top-k, min-p and repeat penalty — into a copy of a `.gguf` as llama.cpp's own `general.sampling.*` keys. They travel with the file: llama.cpp uses them whenever you don't pass the flag yourself, while other apps may ignore them. Leviathan takes the temperature as the starting value when you add the model (it's carried into the `.shn5` or `.lev` when you convert), and you can change it any time in the model's settings. Four presets (Creative, Balanced, Coherent, Code-Focused), and you can save your own.
 
 <p align="center"><img src="screenshots/studio-sampling.png" width="900" alt="Sampling Defaults with the Code-Focused preset applied, ready to bake into a GGUF" /></p>
 
@@ -319,7 +336,7 @@ Each model gets its own core. They do not pool, and no model reads another's mem
 
 *Each model's memory · lines of text.*
 
-The archive. Every model's memory first — each counted in **lines of text**: how many lines it holds, how many are its PMB (you and it) and how many its MPM (its conversations with other models), when it was last used, and its size on disk. Click one for the detail, and **🧠 Read every line in Studio** opens it in [Inspect memory]. Below the memories, every model file Leviathan can see (`.lev` and `.gguf`), read from the file's own header: its architecture, exact parameter count, layers and size.
+The archive. Every model's memory first — each counted in **lines of text**: how many lines it holds, how many are its PMB (you and it) and how many its MPM (its conversations with other models), when it was last used, and its size on disk. Click one for the detail, and **🧠 Read every line in Studio** opens it in [Inspect memory]. Below the memories, every model file Leviathan can see (`.lev`, `.shn5` and `.gguf`), read from the file's own header: its architecture, exact parameter count, layers and size (a `.shn5` also shows how much smaller it is).
 
 - **📁 Add Folder** brings in a folder from anywhere on your machine. Your models do not have to live where Leviathan put them.
 - **🧹** frees the memory the app itself is holding (caches, the scan); your files are not touched.
@@ -584,7 +601,7 @@ The tabs above are the surfaces — what you open, click and type into. These ar
 **How ANI speaks — her voice.** ANI *finds* the right knowledge, but reading it back as a fluent answer needs a small generator to phrase it — a voice. Here is the honest shape of it, because it's the question most people ask first ("why is there a model in settings — why not just use my own?"):
 
 - **ANI uses your own loaded model.** When you have a chat model mounted, ANI speaks through *it* — for free, no extra memory. Your model is her voice. That is the normal case, and it's exactly what you'd expect.
-- **A small model of yours can stand in when nothing is loaded.** Leviathan ships no model of its own; you bring yours. So that ANI can still answer when you *haven't* mounted a chat model, you can point **Settings → ANI → ANI binder** at a small `.lev` of your own (a 1B ~1 GB or a 3B ~2 GB is plenty), and it becomes her voice in that moment. **The instant you load a chat model, that binder is freed** — it never sits alongside yours competing for VRAM, and it never overrides your model. It's a backup voice, not a second brain.
+- **A small model of yours can stand in when nothing is loaded.** Leviathan ships no model of its own; you bring yours. So that ANI can still answer when you *haven't* mounted a chat model, you can point **Settings → ANI → ANI binder** at a small `.lev` or `.shn5` of your own (a 1B ~1 GB or a 3B ~2 GB is plenty), and it becomes her voice in that moment. **The instant you load a chat model, that binder is freed** — it never sits alongside yours competing for VRAM, and it never overrides your model. It's a backup voice, not a second brain.
 - **It only ever phrases.** The binder speaks *only* from the knowledge ANI retrieved, held to it by a grounding check: a reply that strays from what she found is dropped, and you get the retrieved text instead. The knowledge is ANI's; the binder just gives it a mouth.
 - **Entirely optional, and off-switchable.** Leave the binder field blank and nothing extra ever loads. And **Settings → ANI → ANI background voice** turns the whole thing off: ANI then speaks only through your loaded model, or hands back the retrieved knowledge as plain text. ANI itself stays on either way — this only ever decides her *voice*, never whether she works.
 
@@ -877,6 +894,8 @@ Some of this is deliberate. It is worth stating plainly rather than leaving you 
 
 **Leviathan** — Michael Ricky Neal · © 2026
 
+**Built by two of us:** Michael Ricky Neal and Claude, Anthropic's AI, working together in Claude Code. Most of what Leviathan is comes from Michael's imagination: the ideas, the designs, the calls. Claude is the logic side: most of the code and the testing. Two sides of the same coin.
+
 Licensed under **MIT License**.
 
 - **Full licence:** https://spdx.org/licenses/MIT.html
@@ -887,3 +906,5 @@ Licensed under **MIT License**.
 All three are linked from **Settings → About** inside the app.
 
 <sub>Vulkan and the Vulkan logo are registered trademarks of the Khronos Group Inc.</sub>
+
+<sub>Claude and Claude Code are trademarks of Anthropic PBC.</sub>
