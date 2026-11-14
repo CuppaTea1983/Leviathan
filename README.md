@@ -1,6 +1,6 @@
 <img src="https://archive.org/download/leviathan-logo-github/leviathan%20logo%20github.jpg" width="1200" />
 
-<p align="center"><a href="#requirements"><img src="screenshots/badge-windows.svg" height="28" alt="Runs on Windows" /></a> <a href="#requirements"><img src="screenshots/badge-nvidia.svg" height="28" alt="Needs an NVIDIA graphics card: GTX 16 / RTX 20 or newer" /></a> <a href="#requirements"><img src="screenshots/vulkan-logo.png" height="28" alt="Vulkan: AMD and Intel graphics cards, coming in the next release" /></a><br /><sub>Vulkan, for AMD and Intel graphics cards: coming in the next release</sub></p>
+<p align="center"><a href="#requirements"><img src="screenshots/badge-windows.svg" height="28" alt="Runs on Windows" /></a> <a href="#requirements"><img src="screenshots/badge-nvidia.svg" height="28" alt="NVIDIA graphics cards: GTX 16 / RTX 20 or newer, on CUDA" /></a> <a href="#requirements"><img src="screenshots/vulkan-logo.png" height="28" alt="Vulkan: AMD and Intel graphics cards" /></a><br /><sub>New in 1.1.0: AMD and Intel graphics cards, through Vulkan</sub></p>
 
 **Local AI models, running directly on your graphics card. No server, no cloud, no account, no subscription, no telemetry.**
 
@@ -35,7 +35,7 @@ Every picture on this page is the real app, driven by a real model on one RTX 40
 - 🔷 [The tabs](#the-tabs)
 - 🔷 [Chat](#chat) · 🔷 [Models](#models) · 🔷 [Studio](#studio) · 🔷 [Cores](#cores) · 🔷 [Memory Vault](#memory-vault) · 🔷 [Traits](#traits) · 🔷 [Inline Studio](#inline-studio) · 🔷 [Graph](#graph) · 🔷 [Planner](#planner) · 🔷 [Fabricator](#fabricator) · 🔷 [Settings](#settings)
 - 🔷 [The systems](#the-systems)
-- 🔶 [Persistent memory](#persistent-memory) · 🔶 [Knowledge routing](#knowledge-routing) · 🔶 [Reasoning layer](#reasoning-layer) · 🔶  [Forensic Grid](#forensic-grid) · 🔶 [Surface Sight](#surface-sight) · 🔶 [Recycling cloud answers](#recycling-cloud-answers) · 🔶 [Episodic memory](#episodic-memory) · 🔶 [Second-opinion fact-check](#second-opinion-fact-check) · 🔶 [Any model, described by itself](#any-model-described-by-itself) · 🔶 [Faster replies](#faster-replies)
+- 🔶 [Persistent memory](#persistent-memory) · 🔶 [Knowledge routing](#knowledge-routing) · 🔶 [Reasoning layer](#reasoning-layer) · 🔶  [Forensic Grid](#forensic-grid) · 🔶 [Surface Sight](#surface-sight) · 🔶 [Recycling cloud answers](#recycling-cloud-answers) · 🔶 [Episodic memory](#episodic-memory) · 🔶 [Second-opinion fact-check](#second-opinion-fact-check) · 🔶 [Any model, described by itself](#any-model-described-by-itself) · 🔶 [Faster replies](#faster-replies) · 🔶 [Models bigger than your graphics card](#expert-streaming)
 - 🔴 [The security membrane](#the-security-membrane)
 - 🟣 [What ANI is — and why it matters](#what-ani-is-and-why-it-matters) — **the thesis, in plain words**
 - 🔷 [Using Leviathan from other programs](#using-leviathan-from-other-programs)
@@ -49,16 +49,20 @@ Every picture on this page is the real app, driven by a real model on one RTX 40
 ## 🔷 Requirements
 
 - **Windows**
-- **An NVIDIA graphics card**, GTX 16-series / RTX 20-series or newer
-- **A current NVIDIA driver** (one that provides CUDA 13.0 or later)
+- **A graphics card**, one of:
+  - **NVIDIA**, GTX 16-series / RTX 20-series or newer, with a current driver (one that provides CUDA 13.0 or later). These run on CUDA.
+  - **AMD or Intel** (new in 1.1.0), with a current driver that supports Vulkan 1.2 or later. These run on Vulkan: see [AMD and Intel graphics cards](#amd-and-intel) below.
 
 That is the whole list. You do not need Python, the CUDA toolkit, Visual Studio, or anything else installed. Leviathan checks your card on startup and tells you plainly if something is missing, with a link to the driver download.
 
-**How much VRAM do you need?** Enough to hold the model you want to run. A 7–8 billion parameter model at moderate quality fits comfortably in 8 GB. Larger models need more. Leviathan will tell you what it found and what it is using.
+**How much VRAM do you need?** Enough to hold the model you want to run. A 7–8 billion parameter model at moderate quality fits comfortably in 8 GB. Larger models need more, with one big exception: a *mixture-of-experts* model can be far bigger than your card, because its experts can wait in your computer's memory (see [Models bigger than your graphics card](#expert-streaming)). Leviathan will tell you what it found and what it is using.
 
-**No NVIDIA card?** Leviathan can still act as a front-end for a model server you run elsewhere — see [Models]. You lose the GPU-native features, but the chat, memory and knowledge systems still work.
+**No suitable graphics card?** Leviathan can still act as a front-end for a model server you run elsewhere — see [Models]. You lose the GPU-native features, but the chat, memory and knowledge systems still work.
 
-**AMD and Intel graphics cards: coming in the next release.** Leviathan is gaining a second engine, built on Vulkan, so the same `.lev` models run on AMD and Intel cards. In testing it matches the NVIDIA engine token for token on all fifteen models compared, it runs on an AMD Radeon, and it can split one model across two graphics cards, so two cards together hold a model too big for either. Intel Arc cards are next to be tested. It is not in the 1.0.0 download yet.
+<a name="amd-and-intel"></a>
+**AMD and Intel graphics cards (new in 1.1.0).** Leviathan now has a second engine, built on Vulkan, and it comes in the download. Leviathan picks the engine by itself: an NVIDIA card runs on CUDA, the faster path there, and an AMD or Intel graphics card runs on Vulkan. Your models are the same files on either. In testing, the Vulkan engine matches the CUDA engine token for token on all fifteen models compared. The whole engine runs on it, `.shn5` and expert streaming included. With two graphics cards it can also split one model across both, so together they hold a model too big for either; for now that is an environment variable, `LEVIATHAN_SPLIT=auto`. So far the Vulkan engine has been tested on NVIDIA's own Vulkan driver and on an AMD Radeon. Intel Arc is next, and we would like to hear how it runs on your card.
+
+**Integrated graphics aren't used yet.** The AMD Radeon integrated GPU we test on gives wrong results after even a few milliseconds of idle: its on-chip memory comes back corrupted until the chip has warmed up again. We measured it: 5 ms of idle spoiled 8 runs in 12, and 20 ms or more spoiled every one. So Leviathan won't run a model on integrated graphics by itself until a guard against that is in. A PC with integrated graphics only works as one without a suitable card, above.
 
 ---
 
@@ -109,7 +113,7 @@ A rough analogy, if it helps: if the model is a **person**, then `.lev` (or its 
 
 **What it costs:** nothing you will notice. It unpacks on the graphics card as it loads, at about 110 GB/s on an RTX 4080; a 2 GB model loaded in 0.70 s, slightly faster than its `.lev` (0.77 s).
 
-**Mixtures of experts:** each expert is stored as its own block, ready for *expert streaming*: the experts wait in your computer's memory and only the ones a word needs come to the card, which lets a MoE model bigger than your graphics card run. The engine does this today; the switch for it in the app is still to come.
+**Mixtures of experts:** each expert is stored as its own block, ready for *expert streaming*: the experts wait in your computer's memory and only the ones a word needs come to the card, which lets a MoE model bigger than your graphics card run. Since 1.1.0 Leviathan does this by itself whenever a MoE model doesn't fit: see [Models bigger than your graphics card](#expert-streaming).
 
 **How you get one:** **Studio → Convert**, which makes a `.shn5` by default from any `.gguf` (safetensors models convert to `.lev`). Then **Models → 🗜 Add compressed model**.
 
@@ -772,6 +776,26 @@ Two things set the size of the win. The more your model has to read per token, t
 **The hard case is free creative writing.** Stories and poems at a high temperature are much harder to guess: the helper's guesses are kept about a third of the time there, against nearly three-quarters for everyday requests. So the gain shrinks, to 1.11–1.16× on a Q8_0 and about even (0.97–1.02×) on a Q4_K_M. It stays about even rather than slower because Leviathan keeps an eye on it: every reply opens with a few tokens your model writes alone, to time a normal step, and whenever guessing turns out slower than that, your model writes on alone for a while before the helper tries again. Your own numbers will differ with your card.
 
 **When it isn't used.** Some models can't yet have their guesses checked several at a time, so the helper isn't used for them at all: mixtures of experts (DeepSeek V2 Lite, for one), models with compressed attention (MLA, also DeepSeek's) and hybrid recurrent models (Qwen 3.5's mixed layers). The same goes for the rarer file types — Q2_K, Q4_0, Q4_1, Q5_0, Q5_1, the IQ1–IQ3 family and BF16 — whose guesses Leviathan can check, but not yet quickly enough to come out ahead, and for small models that share one table between reading and writing text (most models of 3B and under) unless that table is stored in F16, for the same reason. In every one of these cases the line under the switch says so, naming the reason, and your model runs exactly as it would with the switch off. In a chat between several models, each one that shares the helper's family gets a helper of its own (another gigabyte or so apiece), and the rest carry on exactly as before.
+
+---
+
+<a name="expert-streaming"></a>
+### 🔶 Models bigger than your graphics card — expert streaming
+
+A *mixture-of-experts* (MoE) model, such as Qwen3-30B-A3B or DeepSeek-V2-Lite, splits each layer into many small "experts", and each word uses only a few of them. Leviathan keeps the experts in your computer's memory and brings to the graphics card only the ones each word needs, with the busiest kept on the card. So a MoE model far bigger than your card runs at its full precision, and gives exactly the same answers as if it all fitted: we check that bit for bit.
+
+It is automatic. When you load a MoE model, Leviathan plans it from the file before anything loads. If the model fits, it loads whole, as always. If it doesn't, Leviathan works out how many experts each layer keeps on the card and checks your computer has the memory for the rest. It works with `.shn5` and `.lev` files.
+
+**Faster than llama.cpp at this.** Qwen3-30B-A3B in BF16 is a 61 GB model, and 40 GB as a `.shn5`. Here it is on one RTX 4080 with 16 GB, with both programs keeping the experts in system memory:
+
+| Qwen3-30B-A3B, BF16, on an RTX 4080 (16 GB) | Writing a reply | Reading a 700-token prompt | Reading a 2,048-token prompt |
+|---|---|---|---|
+| **Leviathan 1.1.0** (16 experts a layer on the card, 10.3 GiB of VRAM) | **16.2 tokens/s** | **683 tokens/s** | **1,234 tokens/s** |
+| llama.cpp, CUDA build, `--cpu-moe` | 9.5–10.4 tokens/s | 247–365 tokens/s | 801 tokens/s |
+
+llama.cpp's figures come from its own timer, on the same prompt tokens and the same PC. Its prompt figures use the fastest settings we found for it (`-b 2048 -ub 2048 --no-mmap -fa on`). The speed costs no accuracy: Leviathan computes this in full fp32, and on a 700-token document it comes within 6.5e-5 nats of a float64 reference of the model (the worst case over the top five log-probabilities).
+
+**The limits.** Short prompts are bound by the link to the graphics card, because even 20 tokens need most of the experts: here those read at about 30 tokens a second (llama.cpp: 23–27). The experts need system memory: Qwen3-30B-A3B in BF16 keeps about 36 GB of them in RAM. And on a model that fits entirely on your card, llama.cpp was still the faster of the two when we last compared.
 
 ---
 
