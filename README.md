@@ -2,6 +2,11 @@
 
 <p align="center"><a href="#requirements"><img src="screenshots/badge-windows.svg" height="28" alt="Runs on Windows" /></a> <a href="#requirements"><img src="screenshots/badge-nvidia.svg" height="28" alt="NVIDIA graphics cards: GTX 16 / RTX 20 or newer, on CUDA" /></a> <a href="#requirements"><img src="screenshots/vulkan-logo.png" height="28" alt="Vulkan: AMD and Intel graphics cards" /></a><br /><sub>New in 1.1.0: AMD and Intel graphics cards, through Vulkan</sub></p>
 
+---
+
+***.Shn5/DiT on Leviathan Benchmarks***: https://github.com/CuppaTea1983/Sovereign
+
+
 **Local AI models, running directly on your graphics card. No server, no cloud, no account, no subscription, no telemetry.**
 
 Leviathan loads a language model straight into your GPU's memory and talks to it there. Nothing is sent anywhere. There is no background service, no Docker container, no Python to install, and no API key. You open the app, pick a model, and type.
