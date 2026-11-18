@@ -6,6 +6,8 @@
 
 ***.Shn5/DiT on Leviathan Benchmarks***: https://github.com/CuppaTea1983/Sovereign
 
+---
+
 
 **Local AI models, running directly on your graphics card. No server, no cloud, no account, no subscription, no telemetry.**
 
