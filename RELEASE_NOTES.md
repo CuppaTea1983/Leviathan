@@ -1,4 +1,6 @@
+---
 # Leviathan 2.0.0
+---
 
 Leviathan 2.0.0 is mostly the engine. Integrated graphics work now. A mixture-of-experts model whose experts don't fit your memory streams them from an NVMe drive, and quantised mixture-of-experts models that fit the card write about eight times as fast as in 1.1.0. On a 7B model that fits the card, Leviathan now writes as fast as llama.cpp at a short context, and Studio → Convert makes Stage 10, a new lossy `.shn5` level that makes big models much smaller. Faster replies no longer need a helper model: Leviathan can guess ahead from the conversation itself, and a new switch makes streamed mixture-of-experts models write about a quarter faster, for slightly different answers. Install it over 1.1.0: your models, memories and knowledge banks stay where they are.
 
@@ -135,6 +137,8 @@ Install over 1.1.0 or 1.0.0. Everything in `%LOCALAPPDATA%\Leviathan` is kept, a
 
 
 # Leviathan 1.1.0
+
+---
 
 Leviathan 1.1.0 runs on AMD and Intel graphics cards as well as NVIDIA ones. It adds `.shn5`, a compressed model format that loses nothing, and it can run mixture-of-experts models that are bigger than your graphics card, faster than llama.cpp runs them on the same card. Install it over 1.0.0: your models, memories and knowledge banks stay where they are.
 
