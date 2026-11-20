@@ -17,6 +17,8 @@ Leviathan loads a language model straight into your GPU's memory and talks to it
 
 What makes it different from the other ways of running a model locally is what happens *around* the model: Leviathan gives it a memory that survives closing the app, a way to be taught things without retraining, and a way for your other programs — a game engine, a script, a tool you wrote — to use the model Leviathan runs.
 
+**Coming in a later release: video.** A video engine built the same way already runs, in our research build, a 22-billion-parameter diffusion model that makes picture and sound from a prompt. It isn't in this release; it will be added to Leviathan later. Its measurements so far are on the [benchmarks page](https://github.com/CuppaTea1983/Sovereign).
+
 > **Leviathan is the host. The model is the guest.**
 
 *Built with Claude Code by Michael Ricky Neal and Claude, Anthropic's AI, working together: Michael is the imagination, Claude the logic. Two sides of the same coin.*
@@ -59,6 +61,7 @@ Every picture on this page is the real app, driven by a real model on one RTX 40
 - **A graphics card**, one of:
   - **NVIDIA**, GTX 16-series / RTX 20-series or newer, with a current driver (one that provides CUDA 13.0 or later). These run on CUDA.
   - **AMD or Intel** (new in 1.1.0), with a current driver that supports Vulkan 1.2 or later. These run on Vulkan: see [AMD and Intel graphics cards](#amd-and-intel) below.
+  - **Integrated graphics** (new in 2.0.0), through Vulkan too; tested on AMD's Radeon so far: see [Integrated graphics](#integrated-graphics) below.
 
 That is the whole list. You do not need Python, the CUDA toolkit, Visual Studio, or anything else installed. Leviathan checks your card on startup and tells you plainly if something is missing, with a link to the driver download.
 
@@ -67,9 +70,10 @@ That is the whole list. You do not need Python, the CUDA toolkit, Visual Studio,
 **No suitable graphics card?** Leviathan can still act as a front-end for a model server you run elsewhere — see [Models]. You lose the GPU-native features, but the chat, memory and knowledge systems still work.
 
 <a name="amd-and-intel"></a>
-**AMD and Intel graphics cards (new in 1.1.0).** Leviathan now has a second engine, built on Vulkan, and it comes in the download. Leviathan picks the engine by itself: an NVIDIA card runs on CUDA, the faster path there, and an AMD or Intel graphics card runs on Vulkan. Your models are the same files on either. In testing, the Vulkan engine matches the CUDA engine token for token on all fifteen models compared. The whole engine runs on it, `.shn5` and expert streaming included. With two graphics cards it can also split one model across both, so together they hold a model too big for either; for now that is an environment variable, `LEVIATHAN_SPLIT=auto`. So far the Vulkan engine has been tested on NVIDIA's own Vulkan driver and on an AMD Radeon. Intel Arc is next, and we would like to hear how it runs on your card.
+**AMD and Intel graphics cards (new in 1.1.0).** Leviathan now has a second engine, built on Vulkan, and it comes in the download. Leviathan picks the engine by itself: an NVIDIA card runs on CUDA, the faster path there, and an AMD or Intel graphics card runs on Vulkan. Your models are the same files on either. In testing, the Vulkan engine matches the CUDA engine token for token on all ten models we compare (the same next token at every position checked). The whole engine runs on it, `.shn5` and expert streaming included. With two graphics cards it can also split one model across both, so together they hold a model too big for either; for now that is an environment variable, `LEVIATHAN_SPLIT=auto`. So far the Vulkan engine has been tested on NVIDIA's own Vulkan driver and on an AMD Radeon. Intel Arc is next, and we would like to hear how it runs on your card.
 
-**Integrated graphics aren't used yet.** The AMD Radeon integrated GPU we test on gives wrong results after even a few milliseconds of idle: its on-chip memory comes back corrupted until the chip has warmed up again. We measured it: 5 ms of idle spoiled 8 runs in 12, and 20 ms or more spoiled every one. So Leviathan won't run a model on integrated graphics by itself until a guard against that is in. A PC with integrated graphics only works as one without a suitable card, above.
+<a name="integrated-graphics"></a>
+**Integrated graphics (new in 2.0.0).** Leviathan runs models on integrated graphics now, and picks them by itself when there's no graphics card it can use. It took a guard: the AMD Radeon integrated GPU we test on gives wrong results after as little as a millisecond of idle, because its on-chip memory comes back corrupted until the chip has warmed up again (without the guard, 5 ms of idle spoiled 8 runs in 12, and 20 ms spoiled all 12). So the Vulkan engine now wakes an integrated GPU with a short warm-up whenever it has sat idle. With the wake, no run went wrong in 84, after pauses from 1 ms to 1.5 s; without it, 52 of the 84 did. It costs under 1 % of the speed: Llama 3.2 1B wrote at 49.0–49.3 ms a token with the wake and 48.9 without. `LEVIATHAN_VK_IGPU=0` never uses integrated graphics; `=1` always allows them. Intel's integrated graphics haven't been tested yet.
 
 ---
 
@@ -118,11 +122,29 @@ A rough analogy, if it helps: if the model is a **person**, then `.lev` (or its 
 
 **How much smaller:** about **1.5×** for a model stored at full precision, F16 or BF16 (measured: 1.51× on BF16, 1.48× on F16). A quantised download (Q4_K_M, Q8_0, the IQ types…) stays the size it is: its numbers are already packed, so they are stored as they come. **Studio → Convert** shows each model's expected size before you start, so you can see which kind you have.
 
-**What it costs:** nothing you will notice. It unpacks on the graphics card as it loads, at about 110 GB/s on an RTX 4080; a 2 GB model loaded in 0.70 s, slightly faster than its `.lev` (0.77 s).
+**What it costs:** nothing you will notice. It unpacks on the graphics card as it loads, at 78–169 GB/s on an RTX 4080 (F16 and BF16); a 2 GB model loaded in 0.68–0.69 s, slightly faster than its `.lev` (0.78–0.79 s).
 
 **Mixtures of experts:** each expert is stored as its own block, ready for *expert streaming*: the experts wait in your computer's memory and only the ones a word needs come to the card, which lets a MoE model bigger than your graphics card run. Since 1.1.0 Leviathan does this by itself whenever a MoE model doesn't fit: see [Models bigger than your graphics card](#expert-streaming).
 
 **How you get one:** **Studio → Convert**, which makes a `.shn5` by default from any `.gguf` (safetensors models convert to `.lev`). Then **Models → 🗜 Add compressed model**.
+
+<a name="stage10"></a>
+**Stage 10, a smaller lossy level (new in 2.0.0).** A `.shn5` can also be written at Stage 10: the layers' weight matrices are quantised around a per-row and per-column scale grid, then entropy-coded, while the norms, the router, the embeddings and the output head stay lossless. You choose a level, **q8**, **q6**, **q5**, **q4** or **q3**, each set to the error of the ggml format of that name. It shrinks models stored as F16, BF16 or F32; a quantised download has nothing left for it to take. Measured on TinyLlama 1.1B from its F16 (2.20 GB), every file run by Leviathan, teacher-forced over three prompts (312 positions):
+
+| File | Size | Bits a weight on the layers | KL from the F16 | Same top token |
+|---|---|---|---|---|
+| **Stage 10 q8** | 1.13 GB | **7.82** | **1.5e-4** | 99.7 % |
+| Q8_0 | 1.17 GB | 8.50 | 2.3e-4 | 99.7 % |
+| **Stage 10 q6** | 0.92 GB | **6.10** | **1.7e-3** | 98.7 % |
+| Q6_K | 0.90 GB | 6.56 | 2.7e-3 | 97.1 % |
+| **Stage 10 q5** | 0.80 GB | **5.15** | **6.9e-3** | 96.5 % |
+| Q5_K_M | 0.78 GB | 5.63 | 7.9e-3 | 96.2 % |
+| **Stage 10 q4** | 0.69 GB | **4.19** | **2.6e-2** | 92.6 % |
+| Q4_K_M | 0.67 GB | 4.76 | 3.1e-2 | 91.3 % |
+| **Stage 10 q3** | 0.55 GB | **3.03** | **1.1e-1** | 86.9 % |
+| Q3_K, every layer | 0.68 GB | 3.44 | 1.4e-1 | 82.4 % |
+
+On average Stage 10 lands closer to the original at every level, with 7–12 % fewer bits on the layers. From q6 to q4 the whole file is a little bigger than the ggml one, because Stage 10 keeps the embeddings and the output head lossless. The Q3_K row keeps them at F16 too (it is llama.cpp's Q3_K on every layer, the error q3 is set to), so there the Stage 10 file is 20 % smaller. From q6 down, Stage 10's single worst position is worse (at q4, a KL of 2.0 against Q4_K_M's 0.32). Three bits cost a small model far more than a big one, in either format, so q3 is for big models. It pays most on a big full-precision model: Qwen3-30B-A3B's 61.1 GB BF16 GGUF is 40.5 GB as a lossless `.shn5`, 23.7 GB at q6 and 12.2 GB at q3. There q6 lands further from the original than Q6_K (KL 2.6e-4 against 1.6e-4, with the same top token at every position checked) at 6.8 % fewer bits, because each level's error is set on TinyLlama; setting it per model is the next step. At q3 it matches a 13.3 GB Q3_K_S download of the same model: against a float64 reference of the original, both give the same top token at 35 of the 36 positions checked, with a mean KL of 7.3e-3 against the Q3_K_S's 7.0e-3. The Q3_K_S still writes faster in Leviathan, though: Leviathan computes on its blocks as they are, while Stage 10 unpacks each expert to 16 bits on the card first. Streaming their experts through 16 slots, the Q3_K_S writes 42 tokens/s against q3's 21 and uses 2.7 GB of VRAM against 10.4, and the same holds at q6 (Q6_K 23 tokens/s against 18). Stage 10's gain is disk space, RAM and traffic over the link to the card; computing on its format directly is the next step. Make one in **Studio → Convert** with **→ .shn5 Stage 10**.
 
 ---
 
@@ -236,13 +258,13 @@ Routes work only from what the two models already know. They do not browse the w
 <a name="studio"></a>
 ### 🔷 Studio
 
-<p align="center"><img src="screenshots/studio-convert.png" width="900" alt="Studio's Convert tool listing an F16 GGUF, ready to become a .shn5 of about 1.39 GB, a third smaller" /></p>
+<p align="center"><img src="screenshots/studio-convert.png" width="900" alt="Studio's Convert tool with .shn5 Stage 10 chosen at level q6: a 2.0 GB F16 GGUF, ready to become a Stage 10 file of about 0.85 GB" /></p>
 
 Where you build the things Leviathan runs on. Nearly every control has a sensible default; the notes below tell you which ones are worth touching and which to leave alone.
 
 **🔹 Convert → .shn5 / .lev**
 Turns a `.gguf` into a [`.shn5`](#shn5) (the default) or a `.lev`, the forms Leviathan actually runs on; a safetensors model folder converts to `.lev`. The first thing you will use, and a one-time job per model. If a model is not supported, it is refused here — with an explanation of exactly which parts Leviathan does not understand — *before* the multi-gigabyte conversion starts, not after.
-- **Target** — `.shn5` or `.lev`. With `.shn5` selected, each model's row shows the file it will make: *≈4.36 GB (−32 %)* for a 6.4 GB F16 model, or *same size (quantised)* for an already-packed one, so you know before you start.
+- **Target** — `.shn5` (lossless), `.shn5 Stage 10` (lossy, smaller still) or `.lev`. With `.shn5` selected, each model's row shows the file it will make: *≈4.36 GB (−32 %)* for a 6.4 GB F16 model, or *same size (quantised)* for an already-packed one, so you know before you start. With [Stage 10](#stage10), pick a **Stage 10 level** (q8, q6, q5, q4 or q3; the box gives each one's bits a weight) and the row shows that level's file: *≈0.85 GB (−58 %)* for TinyLlama's 2 GB F16 at q6. A quantised model says it needs F16 / BF16 / F32 and is left out. The file is written as `<model>.stage10-<level>.shn5`, beside any lossless one.
 - **Model list** — every model Leviathan found, with buttons to select **All**, **None**, or just the **Unconverted** ones. Tick what you want and convert in a batch.
 - **Q8_0 mode** — how eight-bit models are laid out. **Split (default)** is the safe choice and what you want almost always. *Shannon* and *Tensor Core F16* are alternative layouts for particular cards; leave it on Split unless you have a specific reason. (Applies to `.gguf` only — safetensors always convert as raw F16.)
 - **Which downloads stay compact** — all of the usual ones. Leviathan computes directly on Q2_K, Q3_K, Q4_K, Q5_K, Q6_K, Q8_0, Q4_0, Q4_1, Q5_0, Q5_1, every IQ type (IQ1_S, IQ1_M, IQ2_XXS, IQ2_XS, IQ2_S, IQ3_XXS, IQ3_S, IQ4_NL, IQ4_XS), F16, BF16 and F32, so a `.lev` is the size of the `.gguf` — the `_K_M` / `_K_S` / `_K_L` mixes, the imatrix "IQ" files and MoE models included. (For scale: a 32B model at IQ3_XXS is about a 13 GB file.) The rare leftovers (ternary TQ1_0/TQ2_0, MXFP4) are turned into F16; the converter says so and says how much bigger the file got.
@@ -398,7 +420,7 @@ The right-hand column is the team — the models taking part on top, their runni
 *Build with nodes — and let a model build with you.*
 
 <p align="center"><img src="screenshots/graph.png" width="900" alt="The model's phone-stand script as shape nodes in the Graph, with the 3D part beside it" /></p>
-<p align="center"><sub>The model's phone-stand script, turned into 9 shape nodes and 9 parameters — checked to make exactly the same part.</sub></p>
+<p align="center"><sub>The model's phone-stand script, turned into 9 shape nodes and 11 parameters — checked to make exactly the same part.</sub></p>
 
 A visual node canvas: wire up shapes, numbers, expressions and snippets of code into a graph that computes a result. These are Leviathan's **own** nodes, not a bolted-on third-party pack — each does one clear thing, and the wires carry values between them.
 
@@ -544,7 +566,9 @@ Here is everything you will find, top to bottom:
 
 **🔹 Context length** — the model's **single-pass window**: how big one prompt can be (system prompt + any project files + any ANI reference + its memory + your message) and the range its positions cover. From **2048** up to **Max** — the model's own full trained window, costing more VRAM the higher you go, bounded by your card and not by us. A model's memory reads back into this window — its newest turns, up to a quarter of it — so a bigger window lets a model read back more of what you said, at the price of slower turns once a conversation fills it; everything older stays in its memory on disk, where episodic memory can find it. Raise it when a single prompt is genuinely large, such as Inline Studio with ANI, or for a longer read-back. It was silently pinned at 2048 before; now it is yours. Takes effect the next time a model is loaded.
 
-**🔹 Faster replies** — lets a small *helper model* write ahead while your model checks its guesses several at a time, so replies arrive sooner and say exactly what they would have said anyway. Switch on **Use a helper model to speed up replies** and pick the helper: the list shows the small models in your model folders, or **Browse…** to one. It must come from the same family as the model you chat with — for any Qwen 2.5 model, that's Qwen 2.5 Coder 0.5B. The line under the switch tells you, for each loaded model, whether the helper is working for it, and if not, why. Off by default. [Below].
+**🔹 Faster replies** — guesses the next few words ahead of your model, which checks the guesses several at a time, so replies arrive sooner and say exactly what they would have said anyway. Switch on **Use a helper model to speed up replies** and pick what guesses. **From the conversation itself (no model)**, first in the list, guesses from words already in the chat: no download, no extra graphics memory, any model family, and it pays off most when a reply repeats text that's already there, such as code or a paragraph you've asked it to change. Or pick a small *helper model* from your model folders, or **Browse…** to one; it must come from the same family as the model you chat with — for any Qwen 2.5 model, that's Qwen 2.5 Coder 0.5B. The line under the switch tells you, for each loaded model, whether it's working for it, and if not, why. Off by default. [Below].
+
+**🔹 Mixture-of-experts models** — **Fewer experts a word** makes a mixture-of-experts model whose experts stream (because it's bigger than your graphics card) write faster: each word uses the best three-quarters of the experts it would normally pick, so less crosses to the card. Its answers change a little: on Qwen3-30B-A3B, 25 % faster, with the same next word 96 % of the time. It takes effect from the next reply, and the line under the switch says what it's doing for each loaded model; a model that fits your card whole is left as it is. Off by default. [Below].
 
 **🔹 Memory** — where each model's memory is kept, with **📂 Open folder** to go there and **🧠 Read it in Studio** to look inside; how it works is covered under [Persistent memory]. There is nothing to tune: memory is text, it is written as you chat, and how much a model reads back follows **Context length**.
 
@@ -739,7 +763,7 @@ Leviathan ships knowing a handful of models in detail. Load one it has never see
 ---
 
 <a name="faster-replies"></a>
-### 🔶 Faster replies — a helper model
+### 🔶 Faster replies — a helper model, or none
 
 *Same answers, sooner. If you've met the term before, this is* speculative decoding.
 
@@ -771,18 +795,27 @@ Think of an apprentice and a master. The apprentice sketches the next few stroke
 
 | Your model's file | Temperature 0.7 (the default) | Temperature 0 |
 |---|---|---|
-| Q8_0 | 70 → 112 tokens a second (**1.59×**) | 72 → 123 (**1.71×**) |
-| Q6_K | 88 → 117 (**1.34×**) | 91 → 136 (**1.50×**) |
-| Q5_K_M | 94 → 120 (**1.27×**) | 97 → 128 (**1.32×**) |
-| Q4_K_M | 100 → 129 (**1.28×**) | 103 → 143 (**1.38×**) |
-| Q3_K_M | 81 → 118 (**1.45×**) | 84 → 124 (**1.48×**) |
-| IQ4_XS | 77 → 111 (**1.45×**) | 81 → 126 (**1.55×**) |
+| Q8_0 | 78.5 → 135.7 tokens a second (**1.73×**) | 79.9 → 149.1 (**1.87×**) |
+| Q6_K | 96.3 → 142.5 (**1.48×**) | 99.1 → 156.1 (**1.58×**) |
+| Q5_K_M | 101.7 → 135.0 (**1.33×**) | 106.6 → 143.3 (**1.34×**) |
+| Q4_K_M | 108.1 → 151.9 (**1.40×**) | 111.3 → 161.9 (**1.45×**) |
+| Q3_K_M | 110.3 → 150.2 (**1.36×**) | 113.4 → 164.0 (**1.45×**) |
+| IQ4_XS | 116.7 → 136.5 (**1.17×**) | 120.5 → 146.7 (**1.22×**) |
 
-Two things set the size of the win. The more your model has to read per token, the more waiting the helper saves, which is why a Q8_0 gains most. And Q3_K_M and IQ4_XS gain more than you'd expect from their size, because unpacking their weights is slow work in itself, and checking four tokens at once shares that work out too. Persistent memory doesn't get in the way: with it on, a Q8_0 went from 64 to 105 tokens a second (**1.65×**) at the default temperature, and a Q4_K_M from 83 to 113 (**1.36×**). F16 models work too: Qwen 2.5 Coder 1.5B in F16 replied **1.20×** faster with the same helper. Smaller models gain less, because the helper's own time is a bigger share of theirs.
+What sets the size of the win is how much your model has to read for each token: the more it reads, the more waiting the helper saves, which is why a Q8_0 gains most and a Q6_K next. IQ4_XS gains least here; it is already the fastest of the six on its own. F16 models work too: Qwen 2.5 Coder 1.5B in F16 replied **1.15–1.23×** faster with the same helper. Smaller models gain less, because the helper's own time is a bigger share of theirs.
 
-**The hard case is free creative writing.** Stories and poems at a high temperature are much harder to guess: the helper's guesses are kept about a third of the time there, against nearly three-quarters for everyday requests. So the gain shrinks, to 1.11–1.16× on a Q8_0 and about even (0.97–1.02×) on a Q4_K_M. It stays about even rather than slower because Leviathan keeps an eye on it: every reply opens with a few tokens your model writes alone, to time a normal step, and whenever guessing turns out slower than that, your model writes on alone for a while before the helper tries again. Your own numbers will differ with your card.
+**The hard case is free creative writing.** Stories and poems at a high temperature are much harder to guess: the helper's guesses are kept a third to two-fifths of the time there (32–40 %), against about three-quarters (73–76 %) for everyday requests. So the gain shrinks, to 1.17–1.25× on a Q8_0 and about even (0.96–1.03×) on a Q4_K_M. It stays close to even, at worst 4 % slower here, because Leviathan keeps an eye on it: every reply opens with a few tokens your model writes alone, to time a normal step, and whenever guessing turns out slower than that, your model writes on alone for a while before the helper tries again. Your own numbers will differ with your card.
 
-**When it isn't used.** Some models can't yet have their guesses checked several at a time, so the helper isn't used for them at all: mixtures of experts (DeepSeek V2 Lite, for one), models with compressed attention (MLA, also DeepSeek's) and hybrid recurrent models (Qwen 3.5's mixed layers). The same goes for the rarer file types — Q2_K, Q4_0, Q4_1, Q5_0, Q5_1, the IQ1–IQ3 family and BF16 — whose guesses Leviathan can check, but not yet quickly enough to come out ahead, and for small models that share one table between reading and writing text (most models of 3B and under) unless that table is stored in F16, for the same reason. In every one of these cases the line under the switch says so, naming the reason, and your model runs exactly as it would with the switch off. In a chat between several models, each one that shares the helper's family gets a helper of its own (another gigabyte or so apiece), and the rest carry on exactly as before.
+**No helper model? Guess from the conversation itself.** Pick **From the conversation itself (no model)**, at the top of the helper list. Instead of a second model, Leviathan takes the last few words your model wrote, looks back through the conversation for the same words, and offers what followed them there as its guess. Your model checks those guesses exactly as it checks a helper's, so the same promises hold: the same reply at temperature 0, the same odds above it. It needs no download and no graphics memory, and it works with any model family. It pays off when a reply repeats text that's already in the conversation: code you've asked it to change, a paragraph to correct, names and quotes. Measured the same way, with Qwen 2.5 Coder 7B Q8_0 on our RTX 4080, and at temperature 0 every reply identical to the one written without it:
+
+| Requests | Temperature 0.7 (the default) | Temperature 0 |
+|---|---|---|
+| Six edits of code or text (add a docstring, rename a variable, fix a typo, a list into a table, …) | 74.2 → 114.6 tokens a second (**1.54×**) | 77.8 → 126.4 (**1.62×**) |
+| The six everyday requests above | 77.7 → 86.2 (**1.11×**) | 80.1 → 87.1 (**1.09×**) |
+
+Where there's little to repeat, it helps less, and a helper model does more (1.73–1.87× on those everyday requests, above).
+
+**When it isn't used.** Some models can't yet have their guesses checked several at a time, so neither kind of guessing is used for them: models with compressed attention (MLA, DeepSeek's) and hybrid recurrent models (Qwen 3.5's mixed layers). Mixtures of experts are left out too, for a different reason: Leviathan checks their guesses exactly, but every word it checks needs experts of its own, so one check costs several ordinary steps. On Qwen3-30B-A3B, guessing from the conversation made replies slower, not faster (0.59–0.96× in our tests, whether the model sat whole on the card or streamed its experts). The same goes for the rarer file types — Q2_K, Q4_0, Q4_1, Q5_0, Q5_1, the IQ1–IQ3 family and BF16 — whose guesses Leviathan can check, but not yet quickly enough to come out ahead, and for small models that share one table between reading and writing text (most models of 3B and under) unless that table is stored in F16, for the same reason. In every one of these cases the line under the switch says so, naming the reason, and your model runs exactly as it would with the switch off. In a chat between several models, each one that shares the helper's family gets a helper of its own (another gigabyte or so apiece), and the rest carry on exactly as before; guessing from the conversation needs nothing extra for any of them.
 
 ---
 
@@ -797,12 +830,16 @@ It is automatic. When you load a MoE model, Leviathan plans it from the file bef
 
 | Qwen3-30B-A3B, BF16, on an RTX 4080 (16 GB) | Writing a reply | Reading a 700-token prompt | Reading a 2,048-token prompt |
 |---|---|---|---|
-| **Leviathan 1.1.0** (16 experts a layer on the card, 10.3 GiB of VRAM) | **16.2 tokens/s** | **683 tokens/s** | **1,234 tokens/s** |
-| llama.cpp, CUDA build, `--cpu-moe` | 9.5–10.4 tokens/s | 247–365 tokens/s | 801 tokens/s |
+| **Leviathan 2.0.0** (16 experts a layer on the card, 10.3 GiB of VRAM) | **15.9 tokens/s** | **731 tokens/s** | **1,263 tokens/s** |
+| llama.cpp, CUDA build, `--cpu-moe` | 9.4–10.2 tokens/s | 237–363 tokens/s | 795 tokens/s |
 
-llama.cpp's figures come from its own timer, on the same prompt tokens and the same PC. Its prompt figures use the fastest settings we found for it (`-b 2048 -ub 2048 --no-mmap -fa on`). The speed costs no accuracy: Leviathan computes this in full fp32, and on a 700-token document it comes within 6.5e-5 nats of a float64 reference of the model (the worst case over the top five log-probabilities).
+Both programs ran on the same PC in the same session, on the same prompt tokens, each timed by its own clock after a warm-up. Writing is the average over a 128-token reply, as llama.cpp's own benchmark, llama-bench, counts it (llama.cpp with the whole model read into RAM first, `-ncmoe 48 -fa 1 -mmp 0`; its server, after the 700-token prompt, gave the upper figure). llama.cpp's prompt figures use the fastest settings we found for it (`-b 2048 -ub 2048 --no-mmap -fa on`). The speed costs no accuracy: Leviathan computes this in full fp32, and on a 700-token document it comes within 6.4e-5 nats of a float64 reference of the model (the worst case over the top five log-probabilities).
 
-**The limits.** Short prompts are bound by the link to the graphics card, because even 20 tokens need most of the experts: here those read at about 30 tokens a second (llama.cpp: 23–27). The experts need system memory: Qwen3-30B-A3B in BF16 keeps about 36 GB of them in RAM. And on a model that fits entirely on your card, llama.cpp was still the faster of the two when we last compared.
+**New in 2.0.0: experts from an NVMe drive.** With every expert in RAM, Qwen3-30B-A3B in BF16 holds about 36 GB of them. When that much doesn't fit your free system memory, Leviathan reads them from the `.shn5` on an NVMe drive as they're needed, keeps the most-used in a RAM cache, and reads the next layers' likely experts ahead, with the same answers bit for bit. On the model above, once the cache has warmed up (the median token of a 128-token reply), it writes at 16.4 tokens a second with every expert in RAM, 15.2 with a 24 GB cache, 13.3 with a 12 GB cache and 10.4 with an 8 GB one, on a PCIe 5.0 drive. A SATA drive is refused, with the reason. `LEVIATHAN_EXPERT_RAM_GB` sets the cache size yourself.
+
+**Faster again, for slightly different answers: fewer experts a word.** A mixture-of-experts model picks a handful of experts for each word and weighs their answers, and the last ones it picks count for least. **Settings → Mixture-of-experts models → Fewer experts a word** keeps only the best three-quarters of them (6 of Qwen3-30B-A3B's 8), with their weights rescaled so the result keeps its size, which means a third less to send to the card for every word. On the BF16 model above, with 16 experts a layer on the card, Leviathan's engine on its own wrote 23.6 tokens a second instead of 18.8 (+25 %), and 13.9 instead of 11.1 with a 12 GB NVMe cache. It isn't free: the answers change a little. Over 985 positions the next-token probabilities sat a KL of 0.02 from the full model's on average (0.65 at the worst), and the top token stayed the same 95.8 % of the time. So it's off by default. It only changes models whose experts stream; one that fits your card whole runs every expert as before, and a model that uses only two experts a word keeps both. `LEVIATHAN_MOE_TOPK` sets the number of experts yourself.
+
+**The limits.** Short prompts are bound by the link to the graphics card, because even 20 tokens need most of the experts: here those read at about 30 tokens a second (llama.cpp with its experts in RAM: 19–22). And on a mixture-of-experts model that fits entirely on your card, llama.cpp is still the faster of the two: Qwen3-30B-A3B in Q3_K_S writes at 214 tokens a second in llama.cpp and 181 in Leviathan (2.0.0 writes it about eight times as fast as 1.1.0 did).
 
 ---
 
