@@ -1,6 +1,6 @@
 <img src="https://archive.org/download/leviathan-logo-github/leviathan%20logo%20github.jpg" width="1200" />
 
-<p align="center"><a href="#requirements"><img src="screenshots/badge-windows.svg" height="28" alt="Runs on Windows" /></a> <a href="#requirements"><img src="screenshots/badge-nvidia.svg" height="28" alt="NVIDIA graphics cards: GTX 16 / RTX 20 or newer, on CUDA" /></a> <a href="#requirements"><img src="screenshots/vulkan-logo.png" height="28" alt="Vulkan: AMD and Intel graphics cards" /></a><br /><sub>New in 1.1.0: AMD and Intel graphics cards, through Vulkan</sub></p>
+<p align="center"><a href="#requirements"><img src="screenshots/badge-windows.svg" height="28" alt="Runs on Windows" /></a> <a href="#requirements"><img src="screenshots/badge-nvidia.svg" height="28" alt="NVIDIA graphics cards: GTX 16 / RTX 20 or newer, on CUDA" /></a> <a href="#requirements"><img src="screenshots/vulkan-logo.png" height="28" alt="Vulkan: AMD and Intel graphics cards" /></a><br /><sub>New in 2.0.0: Full Support for IGPU + AMD and Intel graphics cards, through Vulkan</sub></p>
 
 ---
 
